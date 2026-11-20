@@ -1,0 +1,22 @@
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Arquivos e dados de processo/documentos
+data/raw/
+data/processed/
+*.pdf
+*.tif
+*.tiff
+*.png
+*.jpg
+*.jpeg
+
+# Saídas locais e temporárias
+*.log
+.DS_Store
+Thumbs.db
+

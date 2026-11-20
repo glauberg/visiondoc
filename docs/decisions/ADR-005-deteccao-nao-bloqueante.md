@@ -1,0 +1,30 @@
+# ADR-005: Detecção de atos maliciosos sem interrupção do pipeline
+
+- **Status:** Aceito
+- **Data:** 2026-11-20
+
+## Contexto
+
+Os documentos podem conter scripts, texto oculto ou instruções dirigidas a modelos de linguagem (injeção de prompt). Uma versão anterior da arquitetura desviava os documentos suspeitos para quarentena e revisão humana.
+
+## Decisão
+
+A detecção identifica e sinaliza o caso, mas não interrompe nem desvia o documento. Ele segue para a extração e a saída normalmente, com as colunas de alerta preenchidas.
+
+A detecção cobre quatro frentes:
+
+1. **Conteúdo ativo:** inventário da ingestão, `pdfid` e regras YARA sobre a estrutura do PDF.
+2. **Texto oculto:** divergência entre a camada de texto nativa e o OCR (`rapidfuzz`); trechos com fonte menor que 1 pt, cor igual à do fundo ou modo de renderização invisível; caracteres de largura zero e marcas de direção.
+3. **Injeção de prompt:** classificador dedicado (Llama Prompt Guard 2 ou o scanner `PromptInjection` do LLM Guard), regras YARA e expressões regulares com padrões imperativos em português e inglês.
+4. **Divergência entre texto e imagem:** os classificadores visual e textual discordam com confiança alta.
+
+## Alternativas consideradas
+
+- **Quarentena com revisão humana:** descartada por interromper o fluxo do peticionamento.
+- **Descartar documentos suspeitos:** descartada; o documento pode ser legítimo e a ocorrência pode ter relevância processual.
+
+## Consequências
+
+- O conteúdo malicioso chega ao CSV de saída; a higienização e a neutralização de fórmulas passam a ser obrigatórias ([RN-014](../domain/business-rules.md#rn-014)).
+- A sinalização na saída é a única barreira para quem consome o CSV; consumidores devem tratar `inteiro_teor` como dado.
+- A taxa de falsos positivos deve ser medida e o limiar calibrado.
