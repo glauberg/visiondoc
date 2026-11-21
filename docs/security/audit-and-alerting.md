@@ -10,9 +10,10 @@ A trilha transversal append-only foi removida da arquitetura definida pelos prin
 
 - Uma ocorrência gera uma linha em `alertas_AAAA-MM-DD.csv`.
 - Um documento pode gerar várias ocorrências.
-- O alerta contém página/região quando disponível, categoria, severidade, detector e evidência limitada.
+- O alerta contém página/região quando disponível, etapa, categoria, severidade, campo quando aplicável, mascaramento e evidência limitada.
 - A ocorrência não interrompe extração, reconstrução ou exportação.
 - Falha imediata de escrita mantém o alerta em memória e tenta regravá-lo ao fim do lote.
+- Se a regravação falhar, os alertas pendentes vão para `alertas_pendentes_<id_lote>.csv` em diretório de contingência; se também falhar, o lote termina com código de saída de falha e log sem conteúdo documental ([RN-013](../domain/business-rules.md#rn-013)).
 - Falhas de escrita não são apresentadas como ausência de ameaça.
 
 ## Proteções

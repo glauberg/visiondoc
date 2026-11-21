@@ -1,7 +1,9 @@
 # ADR-004: Fusão por média ponderada
 
-- **Status:** Aceito
+- **Status:** Substituído por [ADR-010](ADR-010-vlm-qwen35-9b-lora.md)
 - **Data:** 2026-11-20
+
+> Mantido como registro histórico. Com um modelo único, não há fusão no pipeline; a fusão ConvNeXt + BERTimbau é usada apenas na linha de base dos experimentos.
 
 ## Contexto
 
@@ -25,5 +27,5 @@ Os pesos são calibrados no conjunto de validação. As probabilidades de cada c
 ## Consequências
 
 - Nenhum treino adicional além dos dois classificadores.
-- Os escores individuais são mantidos na saída (`confianca_visual`, `confianca_texto`) para análise e para a regra de divergência ([RN-011](../domain/business-rules.md#rn-011)).
+- Os escores individuais eram mantidos na versão histórica.
 - Se os pesos calibrados indicarem que um dos classificadores não contribui, o estudo de ablação registra o fato.

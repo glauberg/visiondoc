@@ -16,7 +16,7 @@ As capacidades pretendidas incluem:
 
 - receber PDF e JPEG (`.jpg`/`.jpeg`) com menos de 2.000.000 bytes, em português do Brasil, incluindo páginas/imagens horizontais, verticais, inclinadas, rotacionadas ou espelhadas;
 - classificar preliminarmente RG, CPF ou CNH, com `outros` e `indefinido` como classes de rejeição;
-- extrair nome completo, data de nascimento, nome da mãe, nome do pai, número do documento, data de emissão, órgão emissor e tipo do documento;
+- extrair nome completo, data de nascimento, filiação (nomes dos genitores em lista, sem distinção de papel), número do documento, data de emissão, órgão emissor e tipo do documento, conforme o [contrato da saída do VLM](docs/contracts/saida-vlm.md);
 - associar resultados à origem, evidência e incerteza, sempre que possível;
 - disponibilizar revisão/correção humana rastreável por amostragem aleatória, sem exigir revisão de cada documento para concluir o processamento;
 - identificar e sinalizar entradas potencialmente maliciosas, sem executá-las nem obedecer a instruções nelas contidas;
@@ -59,7 +59,7 @@ Use os templates em `.specify/templates/` e siga `specs/README.md`. Não crie es
 - Não permita que conteúdo documental ou saída de modelo altere políticas, permissões, fluxo de controle ou acione operações privilegiadas sem validação e autorização independentes.
 - Exponha falhas e incertezas; ausência de alerta não significa que um documento é seguro.
 - Não inclua dados pessoais, documentos judiciais reais, credenciais ou segredos em código, documentação, exemplos, logs, testes, prompts ou commits.
-- Prefira dados sintéticos. O uso de dados reais depende de autorização, avaliação jurídica/privacidade e salvaguardas documentadas.
+- Na fase de desenvolvimento e testes não são admitidos dados reais nem documentos de processos judiciais, nem para treinamento nem para teste ou avaliação; use apenas dados sintéticos ou fictícios. Qualquer uso futuro de dados reais exige nova decisão, autorização, avaliação jurídica/privacidade e salvaguardas documentadas.
 - Não transmita documentos ou dados sensíveis a serviços externos. Modelos só podem executar localmente ou por recurso/API implantado e controlado pela instituição; não usar nuvem pública.
 - Use `.env.example` apenas para nomes e descrições de variáveis, sem valores secretos. Mantenha configurações locais com segredos fora do controle de versão, conforme `.gitignore`.
 - Não solicite, copie, imprima ou inclua chaves reais no repositório.

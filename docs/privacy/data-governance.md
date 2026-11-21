@@ -22,11 +22,15 @@ Documentos associados a processos podem conter dados pessoais, informações fin
 
 ## Dados de teste
 
-Priorizar dados sintéticos. Se dados reais forem indispensáveis, exigir autorização, minimização/anonimização adequada, controle de acesso, ambiente aprovado e prazo de descarte documentado.
+Na fase de desenvolvimento e testes não são admitidos dados reais nem documentos de processos judiciais, nem para treinamento nem para teste ou avaliação; usar apenas dados sintéticos ou fictícios. Qualquer uso futuro de dados reais exige nova decisão, autorização, minimização/anonimização adequada, controle de acesso, ambiente aprovado e prazo de descarte documentado.
 
 ## Evidência de incidente
 
 O alerta pode conter somente um trecho mínimo da evidência necessária para revisar o incidente. O trecho deve ser truncado e escapado antes da persistência e do envio; texto integral e OCR completo não devem ser incluídos. Tratar esse trecho como dado pessoal potencial e conteúdo hostil.
+
+## Incremento atual
+
+*(Definido em 2026-11-21)* O primeiro incremento da especificação 001 usa apenas dados sintéticos/fictícios dos datasets públicos BID e `tech4humans/br-doc-extraction`. Dados reais e documentos de processos judiciais não são admitidos na fase de desenvolvimento e testes.
 
 ## Questões pendentes
 

@@ -9,7 +9,7 @@ Versões anteriores previam notificação assíncrona por fila (Redis Streams ou
 
 ## Decisão
 
-Cada ocorrência detectada é gravada como uma linha em `alertas.csv`, ligada à linha do CSV principal por `id_registro`. O esquema está em [`contratos/alertas-csv.md`](../contratos/alertas-csv.md).
+Cada ocorrência detectada é gravada como uma linha em `alertas.csv`, ligada à linha do CSV principal por `id_registro`. O esquema está em [`contratos/alertas-csv.md`](../contracts/alertas-csv.md).
 
 Regras de escrita:
 

@@ -1,7 +1,9 @@
 # ADR-003: Classificador visual com ConvNeXt-Tiny ou YOLO26/YOLO11
 
-- **Status:** Proposto (escolha entre as opções pendente)
+- **Status:** Substituído por [ADR-010](ADR-010-vlm-qwen35-9b-lora.md)
 - **Data:** 2026-11-20
+
+> Mantido como registro histórico. O ConvNeXt-Tiny permanece apenas como linha de base nos experimentos; o YOLO foi descartado (a localização passa a ser feita pelo VLM).
 
 ## Contexto
 
@@ -56,4 +58,4 @@ A implementação será uma das opções abaixo.
 - O pipeline passa a ter dois modelos treináveis (visual e textual).
 - Com o YOLO em detecção, a unidade de saída passa a ser o documento detectado, não a página ([ADR-008](ADR-008-saida-csv.md)).
 - Com o YOLO em detecção, o recorte por contornos do pré-processamento vira alternativa usada apenas quando o detector não encontra nada.
-- A decisão final deve ser registrada em um novo ADR após a medição da frequência de páginas com vários documentos na base da JFRN.
+- A decisão final deve ser registrada em um novo ADR após a medição da frequência de páginas com vários documentos.

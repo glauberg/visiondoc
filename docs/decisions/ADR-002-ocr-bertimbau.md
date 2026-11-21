@@ -1,7 +1,9 @@
 # ADR-002: Classificação por OCR e BERTimbau em vez de ramos semântico e de fundo
 
-- **Status:** Aceito
+- **Status:** Substituído por [ADR-010](ADR-010-vlm-qwen35-9b-lora.md), [ADR-011](ADR-011-transcricao-paddleocr-vl.md) e [ADR-014](ADR-014-extracao-de-campos.md)
 - **Data:** 2026-11-20
+
+> Mantido como registro histórico. O BERTimbau permanece apenas como linha de base nos experimentos.
 
 ## Contexto
 
@@ -35,5 +37,5 @@ O componente visual é mantido em forma reduzida ([ADR-003](ADR-003-classificado
 - Menos modelos para treinar, servir e manter.
 - Desaparece a restrição de licença não comercial dos pesos do LayoutLMv3.
 - O BERTimbau é um classificador do tipo *encoder*, que não segue instruções: uma injeção de prompt não consegue comandá-lo, o que reduz a superfície de ataque.
-- Texto adversarial ainda pode enviesar a classificação textual; a divergência com o classificador visual vira sinal de alerta ([RN-011](../domain/business-rules.md#rn-011)).
+- Texto adversarial ainda pode enviesar a classificação textual.
 - A extração estruturada de campos fica para trabalho futuro.

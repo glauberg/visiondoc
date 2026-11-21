@@ -8,7 +8,16 @@ PDF e JPEG, seus anexos, metadados, texto nativo, texto OCR e imagens derivadas 
 
 ## P2. Texto extraído é dado, nunca instrução
 
-Texto dos documentos nunca é concatenado a instruções confiáveis de um modelo generativo. Classificadores usados no pipeline produzem somente saídas de domínio fechado, como classes fixas ou escores.
+*(Revisado em 2026-11-20, com a adoção do VLM)*
+
+O conteúdo dos documentos, incluindo imagem e texto extraído, nunca é tratado como instrução por modelo generativo.
+
+Quando um modelo generativo recebe esse conteúdo:
+
+- a instrução de sistema é fixa, versionada e não contém texto extraído;
+- conteúdo documental entra delimitado e identificado como dado;
+- a saída é restringida a um esquema com domínios fechados;
+- a saída é validada contra uma referência independente antes da gravação.
 
 ## P3. A detecção sinaliza, não interrompe
 
