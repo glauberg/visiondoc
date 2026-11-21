@@ -42,7 +42,7 @@ Os identificadores `Q-xx` referem-se às questões da especificação.
 
 ### Antes do uso operacional
 
-- [ ] **T020** Executar prova de conceito do Qwen3.5-4B em 8 bits (FP8 ou INT8) com adaptador LoRA no `vLLM` na GPU de 8 GB (imagem + transcrição → JSON válido com logprobs), fixar a versão do `vLLM` e definir metas de desempenho (Q-23; [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) — depende de: T015.
+- [ ] **T020** Executar prova de conceito do Qwen3.5-4B em 8 bits (FP8 ou INT8) com adaptador LoRA no `vLLM` na GPU de 8 GB (imagem + transcrição → JSON válido com logprobs), fixar a versão do `vLLM` e definir metas de desempenho (Q-23; [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) — depende de: T015. *(2026-11-21: scripts e instruções em [`infrastructure/poc-t020/`](../../infrastructure/poc-t020/README.md); aguardando execução na máquina com a GPU de 8 GB, pois a máquina de desenvolvimento não tem GPU NVIDIA.)*
 - [x] **T021** Definir operacionalmente os 90% e o corpus aprovado (Q-24) — depende de: T003.
 - [ ] **T022** *(Necessária só para eventual uso operacional; a fase de desenvolvimento e testes não admite dados reais)* Aprovar avaliação jurídica/privacidade: controlador, base legal, retenção, descarte e acesso (Q-25) — depende de: T007, T012.
 - [ ] **T023** *(Adiada para especificação futura — Q-17)* Definir responsáveis, taxa, frequência, papéis e persistência da revisão amostral (Q-26) — depende de: T015, T022.
@@ -52,20 +52,20 @@ Os identificadores `Q-xx` referem-se às questões da especificação.
 
 Somente após T019 e solicitação explícita.
 
-- [ ] **T024** Criar a base do projeto e o conjunto de dados sintéticos de teste — depende de: T016, T019.
-- [ ] **T025** Implementar ingestão PDF/JPEG, identificação (nome, SHA-256, data/hora, CNJ), saneamento e linhas de erro — depende de: T007, T008, T011, T024.
-- [ ] **T026** Implementar pré-processamento com mapeamento de coordenadas — depende de: T009, T025.
-- [ ] **T027** Implementar transcrição com PaddleOCR-VL — depende de: T026.
-- [ ] **T028** Implementar detecção de conteúdo ativo, texto oculto e injeção, com falha explícita de detector — depende de: T014, T018, T027.
-- [ ] **T029** Implementar mascaramento na imagem e na transcrição enviadas ao VLM — depende de: T028.
-- [ ] **T030** Implementar `alertas.csv` com higienização, retenção em memória e regravação ao fim do lote — depende de: T002, T012, T028.
+- [x] **T024** Criar a base do projeto e o conjunto de dados sintéticos de teste — depende de: T016, T019. *(Concluída em 2026-11-21: `pyproject.toml` com `uv`, pacote `visiondoc` em `src/backend/`, `config/pipeline.yaml` validado com `pydantic`, gerador de PDF/JPEG sintéticos em `tests/backend/sintetico.py`, listagem dos datasets e lote que apaga intermediários.)*
+- [x] **T025** Implementar ingestão PDF/JPEG, identificação (nome, SHA-256, data/hora e `id_processo` sintético `<dataset>:<arquivo>`, conforme RN-001), saneamento e linhas de erro — depende de: T007, T008, T011, T024. *(Concluída em 2026-11-21: processo isolado com tempo máximo; limite de memória só em POSIX.)*
+- [x] **T026** Implementar pré-processamento com mapeamento de coordenadas — depende de: T009, T025. *(Concluída em 2026-11-21: ruído não é tratado, apenas contraste com CLAHE.)*
+- [x] **T027** Implementar transcrição com PaddleOCR-VL — depende de: T026. *(Concluída em 2026-11-21 com dublês: adaptadores PaddleOCR-VL, PP-OCR e classificador de orientação não verificados com os modelos reais, que não estão instalados.)*
+- [x] **T028** Implementar detecção de conteúdo ativo, texto oculto e injeção, com falha explícita de detector — depende de: T014, T018, T027. *(Concluída em 2026-11-21: adaptador llm-guard e ClamAV não verificados com serviço real; texto da cor do fundo não detectado; elevação de severidade por tipo (RN-011, RN-026) fica para T032/T033.)*
+- [x] **T029** Implementar mascaramento na imagem e na transcrição enviadas ao VLM — depende de: T028. *(Concluída em 2026-11-21.)*
+- [x] **T030** Implementar `alertas.csv` com higienização, retenção em memória e regravação ao fim do lote — depende de: T002, T012, T028. *(Concluída em 2026-11-21: gravador pronto; o preenchimento de `id_registro` e `tipo_documento_previsto` depende de T031–T033.)*
 - [ ] **T031** Implementar chamada ao Qwen3.5-4B via `vLLM` com instrução fixa, esquema estruturado e logprobs do tipo — depende de: T015, T018, T020, T029, T038.
 - [ ] **T032** Implementar validação de esquema, confiança, pertinência, respaldo e consistência — depende de: T004, T013, T031.
 - [ ] **T033** Implementar `documentos.csv` com agrupamento de documentos, neutralização e validação de esquema — depende de: T010, T011, T012, T032.
 - [ ] **T034** *(Fora do primeiro incremento — Q-17)* Implementar revisão amostral e registro de correções — depende de: T015, T023, T033.
 - [ ] **T038** Treinar o adaptador LoRA (BID + `br-doc-extraction`), com particionamento prévio, rastreamento em MLflow e avaliação *zero-shot* como linha de base (RF-SDD-17) — depende de: T020, T024.
 - [ ] **T037** Implementar o módulo de análise de desempenho da classificação: acurácia, F1 macro, métricas por classe e matriz de confusão (absoluta e normalizada, com `indefinido`) para tipo e para tipo e face, nos recortes de RNF-SDD-10 — depende de: T024, T036.
-- [ ] **T035** Executar avaliação de métricas, análise das matrizes de confusão e das principais confusões, revisão de segurança e verificação dos critérios de aceitação — depende de: T021, T022, T030, T033, T037.
+- [ ] **T035** Executar avaliação de métricas, análise das matrizes de confusão e das principais confusões, revisão de segurança e verificação dos critérios de aceitação, somente com dados sintéticos — depende de: T021, T030, T033, T037.
 
 ## Verificação de conclusão
 

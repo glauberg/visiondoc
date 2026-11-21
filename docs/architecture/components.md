@@ -37,7 +37,7 @@ Licenças Apache-2.0 a verificar na versão adotada.
 
 ## Detecção e mascaramento
 
-- `pdfid` e `yara-python` para conteúdo ativo, com conjunto inicial de regras para JavaScript, `OpenAction`, `Launch`, `EmbeddedFile` e `AcroForm` em PDF;
+- inventário estrutural com `pikepdf` e `yara-python` para conteúdo ativo ([ADR-016](../decisions/ADR-016-inventario-e-neutralizacao.md)), com conjunto inicial de regras para JavaScript, `OpenAction`, `Launch`, `EmbeddedFile` e `AcroForm` em PDF;
 - `rapidfuzz`, `regex` e `unicodedata` para texto oculto;
 - scanner `PromptInjection` do llm-guard (MIT; modelo DeBERTa Apache-2.0, licenças a confirmar na versão adotada) como detector de injeção; Llama Prompt Guard 2 apenas em experimento, após verificação de licença;
 - ClamAV: detecção gera `conteudo_ativo` com severidade `alta`;
@@ -72,7 +72,7 @@ ConvNeXt-Tiny, BERTimbau e fusão por média ponderada são linhas de base hist�
 ## Alertas e saída CSV
 
 - `csv` da biblioteca padrão com `QUOTE_ALL`;
-- `defusedcsv` para neutralização;
+- neutralização própria conforme RN-014, em `visiondoc.csv_seguro` ([ADR-016](../decisions/ADR-016-inventario-e-neutralizacao.md));
 - `filelock` para concorrência;
 - `pandas` para consolidação;
 - `ftfy`, `unicodedata` e `regex` para normalização;

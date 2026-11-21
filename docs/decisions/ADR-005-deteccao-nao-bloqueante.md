@@ -1,6 +1,6 @@
 # ADR-005: Detecção de atos maliciosos sem interrupção do pipeline
 
-- **Status:** Aceito, alterado por [ADR-012](ADR-012-deteccao-antes-do-vlm.md) (ordem no pipeline, mascaramento) e [ADR-013](ADR-013-validacao-saida-vlm.md) (novas categorias)
+- **Status:** Aceito, alterado por [ADR-012](ADR-012-deteccao-antes-do-vlm.md) (ordem no pipeline, mascaramento) e [ADR-013](ADR-013-validacao-saida-vlm.md) (novas categorias); [ADR-016](ADR-016-inventario-e-neutralizacao.md) (`pdfid` substituído pelo inventário com `pikepdf`)
 - **Data:** 2026-11-20
 
 > A categoria `divergencia_texto_imagem` deixou de existir com o fim dos dois classificadores. A detecção agora antecede o VLM e mascara ocorrências conhecidas.

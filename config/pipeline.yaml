@@ -1,0 +1,27 @@
+# Configuração versionada do pipeline (Q-22). Sem segredos nem caminhos locais.
+# A versão abaixo compõe versao_pipeline.
+versao: "1"
+
+limites:                     # ING-SEC-01
+  tamanho_max_bytes: 2000000 # estritamente menor
+  paginas_max: 50
+  lado_max_px: 10000
+  tempo_max_s: 120
+  memoria_max_gb: 8
+
+rasterizacao:
+  dpi: 300
+
+deteccao:                    # RN-009, RN-010, ADR-012
+  yara_regras: "config/yara/pdf_conteudo_ativo.yar"
+  injecao_limiar_alto: 0.9
+  injecao_limiar_intermediario: 0.5
+  texto_oculto_partial_ratio: 80
+  fonte_minima_pt: 1.0
+  clamav:
+    habilitado: true
+    host: "127.0.0.1"
+    porta: 3310
+
+saida:
+  evidencia_max_caracteres: 500  # RN-015

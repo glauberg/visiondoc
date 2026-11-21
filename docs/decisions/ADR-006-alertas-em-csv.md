@@ -1,6 +1,6 @@
 # ADR-006: Alertas exportados em CSV próprio
 
-- **Status:** Aceito
+- **Status:** Aceito, alterado por [ADR-016](ADR-016-inventario-e-neutralizacao.md) (`defusedcsv` substituído por neutralização própria conforme RN-014; aspas apenas nos campos de texto)
 - **Data:** 2026-11-20
 
 ## Contexto

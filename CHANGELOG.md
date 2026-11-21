@@ -8,6 +8,7 @@ As 27 questões da [especificação 001](specs/001-pipeline-documental-seguro/sp
 - **Entrada:** arquivos dos datasets BID e `br-doc-extraction`, com `id_processo` sintético `<dataset>:<arquivo>` ([RN-001](docs/domain/business-rules.md#rn-001)); JPEG convertido em PDF de uma página; limites de ingestão; EXIF apenas auxiliar.
 - **Regras:** RN-004, 009, 010, 013, 016, 017, 018, 024, 025 e 027 complementadas; RN-029 nova (junção de frente e verso).
 - **Contratos 2.1:** `motivo_erro`, `falha_deteccao`, arquivo por lote, `inteiro_teor` restrito ao `bbox`, `bbox` em pixels da página original a 300 DPI.
+- **Implementação T024–T030:** inventário de conteúdo ativo com `pikepdf` no lugar do `pdfid` e neutralização própria conforme RN-014 no lugar do `defusedcsv`; aspas só nos campos de texto ([ADR-016](docs/decisions/ADR-016-inventario-e-neutralizacao.md), altera os ADR-005 e ADR-006).
 - **Engenharia:** Python 3.12, `uv`, `pytest`, `ruff`, `config/pipeline.yaml` validado com `pydantic`, llm-guard como detector de injeção.
 - **Avaliação:** meta de 90% sobre os campos extraídos; análise de acurácia, F1 macro e matriz de confusão sobre documentos aceitos, com cobertura, IoU ≥ 0,5 e IC por *bootstrap*.
 - **Escopo:** treino LoRA incluído; revisão amostral e frontend adiados.

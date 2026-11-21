@@ -36,7 +36,7 @@ Registro detalhado das ocorrências de atos maliciosos e das falhas de validaç�
 
 ## Cuidados
 
-- A coluna `evidencia` contém conteúdo hostil ou valores não confirmados. A neutralização de fórmulas (`defusedcsv`) e a remoção de caracteres invisíveis são obrigatórias.
+- A coluna `evidencia` contém conteúdo hostil ou valores não confirmados. A neutralização de fórmulas ([RN-014](../domain/business-rules.md#rn-014), [ADR-016](../decisions/ADR-016-inventario-e-neutralizacao.md)) e a remoção de caracteres invisíveis são obrigatórias.
 - Nenhum consumidor deve repassar `evidencia` a um modelo generativo como instrução.
 - Na etapa `validacao`, `evidencia` traz o valor proposto pelo VLM, que pode ser dado pessoal inventado; não deve ser usado como dado do titular.
 

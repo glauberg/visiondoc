@@ -20,3 +20,8 @@ data/processed/
 .DS_Store
 Thumbs.db
 
+# Ambiente Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/

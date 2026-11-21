@@ -6,7 +6,7 @@ Definir como correlacionar sinais de conteúdo ativo, texto oculto, injeção de
 
 ## Fontes de sinal
 
-- Inventário de conteúdo ativo gerado na ingestão, `pdfid`, regras YARA iniciais (JavaScript, `OpenAction`, `Launch`, `EmbeddedFile`, `AcroForm`) e ClamAV.
+- Inventário estrutural de conteúdo ativo gerado na ingestão com `pikepdf` ([ADR-016](../decisions/ADR-016-inventario-e-neutralizacao.md)), regras YARA iniciais (JavaScript, `OpenAction`, `Launch`, `EmbeddedFile`, `AcroForm`) e ClamAV.
 - Diferenças entre texto nativo do PDF e texto OCR, relacionadas por página/região (`partial_ratio` < 80).
 - Sinais visuais de texto pequeno, cor semelhante ao fundo ou caracteres invisíveis, quando detectáveis.
 - Scanner `PromptInjection` do llm-guard, regras e expressões regulares para instruções potencialmente dirigidas a modelos.

@@ -1,0 +1,41 @@
+[project]
+name = "visiondoc"
+version = "2.1.0"
+description = "Pipeline de classificação e extração de documentos de identificação (especificação 001)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "pikepdf>=9.0",
+    "pypdfium2>=4.30",
+    "pillow>=10.3",
+    "numpy>=1.26",
+    "opencv-python-headless>=4.9",
+    "rapidfuzz>=3.9",
+    "yara-python>=4.5",
+    "clamd>=1.0.2",
+    "filelock>=3.13",
+]
+
+[project.optional-dependencies]
+# Modelos executados localmente; exigem instalação própria (GPU, pesos).
+modelos = ["paddleocr>=3.0", "llm-guard>=0.3"]
+
+[dependency-groups]
+dev = ["pytest>=8.2", "ruff>=0.5", "pandas>=2.2"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/backend/visiondoc"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/backend"]
+pythonpath = ["src/backend", "tests/backend"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src/backend", "tests/backend"]
