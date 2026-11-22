@@ -31,7 +31,6 @@ PaddleOCR, OpenCV e Pillow corrigem orientação, inclinação, perspectiva, con
 
 - PaddleOCR-VL 1.6 para inteiro teor e caixas;
 - PaddleOCR PP-OCR e Tesseract como linhas de base de CER;
-- `vLLM` como servidor opcional.
 
 Licenças Apache-2.0 a verificar na versão adotada.
 
@@ -51,12 +50,12 @@ Modelo principal: Qwen3.5-4B ([ADR-015](../decisions/ADR-015-vlm-qwen35-4b.md)),
 - Carga: Hugging Face `transformers`;
 - Ajuste: `peft`, `bitsandbytes`, `trl`;
 - Rastreamento: MLflow;
-- Inferência: `vLLM`;
+- Inferência: Ollama ([ADR-017](../decisions/ADR-017-ollama-servidor-do-vlm.md)), `qwen3.5:4b` em Q4_K_M;
 - Saída: decodificação guiada por esquema JSON;
-- Hardware disponível: GPU de 8 GB, com QLoRA 4 bits no ajuste e pesos em 8 bits (FP8 ou INT8) na inferência ([ADR-015](../decisions/ADR-015-vlm-qwen35-4b.md)).
-- Requisito do `vLLM`: versão fixada que suporte Qwen3.5, entrada multimodal, LoRA sobre modelo quantizado em 8 bits, decodificação estruturada e logprobs, confirmada por prova de conceito antes da implementação.
+- Hardware de desenvolvimento: GPU de 4 GB (GTX 1650), com parte do modelo em CPU; QLoRA 4 bits no ajuste ([ADR-015](../decisions/ADR-015-vlm-qwen35-4b.md), [ADR-017](../decisions/ADR-017-ollama-servidor-do-vlm.md)).
+- Requisito do Ollama: entrada multimodal, saída por esquema JSON e logprobs (verificados em 2026-11-22) e carga do adaptador LoRA em GGUF (a verificar na T020). Versão em uso: 0.40.17.
 
-Hiperparâmetros iniciais: rank 16, alpha 32, dropout 0,05, atenção e MLP como módulos-alvo. A versão do `vLLM` deve suportar a arquitetura Qwen3.5 e LoRA multimodal sobre modelo quantizado em 8 bits.
+Hiperparâmetros iniciais: rank 16, alpha 32, dropout 0,05, atenção e MLP como módulos-alvo.
 
 ## Validação
 

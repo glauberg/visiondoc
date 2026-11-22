@@ -1,6 +1,6 @@
 # ADR-015: Qwen3.5-4B como modelo principal por limite de hardware
 
-- **Status:** Aceito
+- **Status:** Aceito, alterado por [ADR-017](ADR-017-ollama-servidor-do-vlm.md) (servidor de inferência, quantização e GPU de referência)
 - **Data:** 2026-11-21
 - **Altera:** [ADR-010](ADR-010-vlm-qwen35-9b-lora.md) (modelo e configuração de hardware; o método de ajuste com LoRA e a forma de inferência permanecem)
 
