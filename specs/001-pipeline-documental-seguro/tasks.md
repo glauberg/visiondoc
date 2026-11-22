@@ -2,8 +2,8 @@
 
 - **Especificação:** [`spec.md`](spec.md)
 - **Plano:** [`plan.md`](plan.md)
-- **Estado:** especificação e plano aprovados em 2026-11-21 por Bruno Silva; pendentes T020 e T022; implementação mediante solicitação explícita
-- **Última atualização:** 2026-11-21
+- **Estado:** especificação e plano aprovados em 2026-11-21 por Bruno Silva; revisão de 2026-11-22 (Ollama, ADR-017) aguarda aprovação de Glauber Galvão; pendentes T020 e T022; implementação mediante solicitação explícita
+- **Última atualização:** 2026-11-22
 
 Os identificadores `Q-xx` referem-se às questões da especificação.
 
@@ -42,7 +42,7 @@ Os identificadores `Q-xx` referem-se às questões da especificação.
 
 ### Antes do uso operacional
 
-- [ ] **T020** Executar prova de conceito do Qwen3.5-4B em 8 bits (FP8 ou INT8) com adaptador LoRA no `vLLM` na GPU de 8 GB (imagem + transcrição → JSON válido com logprobs), fixar a versão do `vLLM` e definir metas de desempenho (Q-23; [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) — depende de: T015. *(2026-11-21: scripts e instruções em [`infrastructure/poc-t020/`](../../infrastructure/poc-t020/README.md); aguardando execução na máquina com a GPU de 8 GB, pois a máquina de desenvolvimento não tem GPU NVIDIA.)*
+- [ ] **T020** Executar prova de conceito do Qwen3.5-4B em 8 bits (FP8 ou INT8) com adaptador LoRA no `vLLM` na GPU de 8 GB (imagem + transcrição → JSON válido com logprobs), fixar a versão do `vLLM` e definir metas de desempenho (Q-23; [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) — depende de: T015. *(2026-11-21: scripts e instruções em [`infrastructure/poc-t020/`](../../infrastructure/poc-t020/README.md); aguardando execução na máquina com a GPU de 8 GB, pois a máquina de desenvolvimento não tem GPU NVIDIA.)* *(2026-11-22: [ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md) adota o Ollama; a prova de conceito passa a ser a conversão e carga do adaptador LoRA em GGUF no Ollama com o `qwen3.5:4b`; a verificação de imagem, esquema e logprobs já foi feita.)*
 - [x] **T021** Definir operacionalmente os 90% e o corpus aprovado (Q-24) — depende de: T003.
 - [ ] **T022** *(Necessária só para eventual uso operacional; a fase de desenvolvimento e testes não admite dados reais)* Aprovar avaliação jurídica/privacidade: controlador, base legal, retenção, descarte e acesso (Q-25) — depende de: T007, T012.
 - [ ] **T023** *(Adiada para especificação futura — Q-17)* Definir responsáveis, taxa, frequência, papéis e persistência da revisão amostral (Q-26) — depende de: T015, T022.
@@ -59,7 +59,7 @@ Somente após T019 e solicitação explícita.
 - [x] **T028** Implementar detecção de conteúdo ativo, texto oculto e injeção, com falha explícita de detector — depende de: T014, T018, T027. *(Concluída em 2026-11-21: adaptador llm-guard e ClamAV não verificados com serviço real; texto da cor do fundo não detectado; elevação de severidade por tipo (RN-011, RN-026) fica para T032/T033.)*
 - [x] **T029** Implementar mascaramento na imagem e na transcrição enviadas ao VLM — depende de: T028. *(Concluída em 2026-11-21.)*
 - [x] **T030** Implementar `alertas.csv` com higienização, retenção em memória e regravação ao fim do lote — depende de: T002, T012, T028. *(Concluída em 2026-11-21: gravador pronto; o preenchimento de `id_registro` e `tipo_documento_previsto` depende de T031–T033.)*
-- [ ] **T031** Implementar chamada ao Qwen3.5-4B via `vLLM` com instrução fixa, esquema estruturado e logprobs do tipo — depende de: T015, T018, T020, T029, T038.
+- [ ] **T031** Implementar chamada ao Qwen3.5-4B via Ollama (ADR-017) com instrução fixa, esquema estruturado e logprobs do tipo — depende de: T015, T018, T020, T029, T038.
 - [ ] **T032** Implementar validação de esquema, confiança, pertinência, respaldo e consistência — depende de: T004, T013, T031.
 - [ ] **T033** Implementar `documentos.csv` com agrupamento de documentos, neutralização e validação de esquema — depende de: T010, T011, T012, T032.
 - [ ] **T034** *(Fora do primeiro incremento — Q-17)* Implementar revisão amostral e registro de correções — depende de: T015, T023, T033.

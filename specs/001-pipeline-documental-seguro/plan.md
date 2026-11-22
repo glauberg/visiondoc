@@ -1,8 +1,8 @@
 # Plano: pipeline documental multimodal seguro
 
 - **Especificação:** [`spec.md`](spec.md)
-- **Estado:** aprovado em 2026-11-21 por Bruno Silva. Questões abertas que não impedem a aprovação: Q-23 (prova de conceito do `vLLM` em 8 bits e metas de desempenho) e Q-25 (governança de dados para uso operacional futuro)
-- **Última atualização:** 2026-11-21
+- **Estado:** revisado em 2026-11-22 para adotar o Ollama como servidor do VLM ([ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)); **aguardando aprovação de Glauber Galvão**. A versão anterior (com `vLLM`) foi aprovada em 2026-11-21 por Bruno Silva. Questões abertas que não impedem a aprovação: Q-23 (prova de conceito do adaptador LoRA no Ollama e metas de desempenho) e Q-25 (governança de dados para uso operacional futuro)
+- **Última atualização:** 2026-11-22
 
 ## Abordagem
 
@@ -12,7 +12,7 @@ Implementar o pipeline em Python 3.12 como uma sequência de etapas com contrato
 2. **Pré-processamento:** normalizar orientação, inclinação, espelhamento (comparação da confiança do OCR), contraste e ruído, registrando a transformação para converter `bbox` à página original.
 3. **Transcrição:** PaddleOCR-VL gera inteiro teor e caixas por página.
 4. **Detecção e mascaramento:** correlacionar conteúdo ativo (inventário com `pikepdf`, YARA, ClamAV; [ADR-016](../../docs/decisions/ADR-016-inventario-e-neutralizacao.md)), texto oculto e injeção (llm-guard); mascarar regiões localizadas na imagem e na transcrição enviadas ao VLM; falha de detector gera `falha_deteccao`.
-5. **VLM:** Qwen3.5-4B + LoRA ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) servido por `vLLM` com pesos em 8 bits (FP8 ou INT8) e adaptador LoRA sobre o modelo quantizado, instrução fixa, conteúdo delimitado, decodificação estruturada e temperatura 0.
+5. **VLM:** Qwen3.5-4B + LoRA ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) servido localmente pelo Ollama ([ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)) com o modelo `qwen3.5:4b` em Q4_K_M e o adaptador LoRA em GGUF, instrução fixa, conteúdo delimitado, decodificação estruturada (esquema em `format`), confiança do tipo a partir dos `top_logprobs` e temperatura 0.
 6. **Validação:** esquema, confiança (limiar inicial 0,5), pertinência, respaldo com normalização canônica, consistência de CPF e datas, e junção de frente e verso.
 7. **Saída:** `documentos_<id_lote>.csv` e `alertas_AAAA-MM-DD.csv` higienizados, com retenção em memória, regravação de alertas ao fim do lote e arquivo de contingência.
 
@@ -20,13 +20,13 @@ Em paralelo ao pipeline, o treino do adaptador com QLoRA 4 bits (BID + `br-doc-e
 
 Cada etapa recebe e devolve objetos tipados (`pydantic`); nenhuma etapa interpreta conteúdo documental como instrução. Falha em um documento produz linha de erro com `motivo_erro` sem interromper o lote. Detecção nunca bloqueia ([P3](../../.specify/memory/constitution.md)).
 
-Seguindo [P8](../../.specify/memory/constitution.md), o primeiro incremento é um processamento em lote local por CLI sobre um conjunto ou partição dos datasets, sem orquestrador nem paralelismo distribuído; Prefect/Airflow e Celery/Ray só entram com necessidade demonstrada. Com uma GPU de 8 GB, as etapas que usam modelos podem precisar rodar em sequência. Revisão amostral e frontend ficam para especificação futura.
+Seguindo [P8](../../.specify/memory/constitution.md), o primeiro incremento é um processamento em lote local por CLI sobre um conjunto ou partição dos datasets, sem orquestrador nem paralelismo distribuído; Prefect/Airflow e Celery/Ray só entram com necessidade demonstrada. Com a GPU de 4 GB da máquina de desenvolvimento, parte do VLM roda em CPU e as etapas que usam modelos rodam em sequência; avaliações usam amostras. Revisão amostral e frontend ficam para especificação futura.
 
 ## Componentes afetados
 
 - `src/backend/` (pacote `visiondoc`, gerenciado com `uv`): ingestão, pré-processamento, transcrição, detecção, chamada ao VLM, validação, gravação dos CSVs, treino LoRA e módulo de avaliação.
 - `config/`: `pipeline.yaml` versionado com limiares e parâmetros, validado com `pydantic`; `.env.example` com variáveis de execução local.
-- `infrastructure/`: isolamento de parsers/decodificadores, servidor `vLLM` e GPU de 8 GB em infraestrutura própria.
+- `infrastructure/`: isolamento de parsers/decodificadores, servidor Ollama e GPU em infraestrutura própria.
 - `tests/backend/`: testes `pytest` com dados sintéticos.
 - `src/frontend/` e `tests/frontend/`: sem alteração neste incremento.
 
@@ -47,7 +47,7 @@ Nenhum detalhe de contrato não decidido deve ser presumido na implementação; 
 
 ## Dados, segurança e privacidade
 
-- **Fluxo de dados:** documentos e derivados permanecem na infraestrutura própria do início ao fim; o `vLLM` roda localmente; não há chamada a serviço externo ([ADR-009](../../docs/decisions/ADR-009-execucao-local.md)).
+- **Fluxo de dados:** documentos e derivados permanecem na infraestrutura própria do início ao fim; o Ollama roda localmente, com endereço restrito à própria máquina; não há chamada a serviço externo ([ADR-009](../../docs/decisions/ADR-009-execucao-local.md)).
 - **Controles:** parsers e decodificadores isolados e sem rede; nenhuma execução de conteúdo; instrução de sistema fixa e versionada; saída restrita ao esquema; validação contra a transcrição; neutralização de fórmulas e remoção de caracteres invisíveis em todos os campos textuais.
 - **Dependências externas:** apenas bibliotecas e pesos de modelos com licença verificada na versão adotada (llm-guard e seu modelo, Qwen3.5-4B, PaddleOCR-VL); Prompt Guard 2 só em experimento, após verificação de licença.
 - **Logs:** sem conteúdo documental; somente identificadores, etapas, durações e códigos de erro.
@@ -74,8 +74,9 @@ Os testes dos modelos (PaddleOCR-VL, Qwen3.5-4B, detector de injeção) são sep
 - **Injeção não detectada** influencia o VLM dentro do esquema → mascaramento, instrução fixa, esquema fechado e validação contra a transcrição; medir taxa de sucesso de injeção com e sem mitigação.
 - **Falso positivo de mascaramento** remove campos legítimos → medir e calibrar os limiares iniciais.
 - **Alucinação** → respaldo obrigatório ([RN-024](../../docs/domain/business-rules.md#rn-024)); medir taxa de campos sem respaldo.
-- **GPU de 8 GB** → modelo de 4B com QLoRA no ajuste e 8 bits na inferência; risco de capacidade menor que a do 9B e de perda de precisão pela diferença entre 4 bits no ajuste e 8 bits na inferência, medida na avaliação.
-- **Suporte do `vLLM`** a Qwen3.5 multimodal com LoRA sobre modelo em 8 bits → versão fixada nas dependências e prova de conceito antes do código; se falhar, a decisão volta a ADR (Q-23).
+- **GPU de 4 GB** → modelo de 4B com QLoRA no ajuste e Q4_K_M na inferência pelo Ollama, com parte em CPU (cerca de 22 s por página); risco de capacidade menor que a do 9B, de perda de precisão pela quantização, medida na avaliação, e de lentidão que limita o tamanho das avaliações.
+- **Adaptador LoRA no Ollama** (conversão para GGUF e carga com o modelo multimodal, não verificada) → prova de conceito antes do treino da T038; se falhar, a decisão volta à ADR-017 e o `vLLM` é a alternativa (Q-23).
+- **Confiança do tipo por logprobs do Ollama** são anteriores à restrição do esquema e aproximadas → medir ECE e recalibrar o limiar depois do ajuste.
 - **Diferença sintético × real** → não mensurável nesta fase; relatórios explicitam que os resultados não comprovam desempenho em documentos reais.
 - **Ausência de trilha de auditoria** limita a reconstituição em produção ([ADR-007](../../docs/decisions/ADR-007-remocao-auditoria.md)).
 
@@ -83,8 +84,8 @@ Não iniciar implementação enquanto a especificação não for aprovada.
 
 ## Etapas
 
-1. Executar a prova de conceito: Qwen3.5-4B em 8 bits com adaptador LoRA no `vLLM`, na GPU de 8 GB, com imagem, transcrição, JSON estruturado e logprobs (Q-23).
-2. Especificação e plano aprovados em 2026-11-21.
+1. Executar a prova de conceito: adaptador LoRA convertido para GGUF carregado no Ollama sobre o `qwen3.5:4b`, com imagem, transcrição, JSON estruturado e logprobs (Q-23). Imagem, esquema e logprobs sem adaptador foram verificados em 2026-11-22.
+2. Especificação e plano aprovados em 2026-11-21 (por Bruno Silva); revisão de 2026-11-22 aguarda aprovação de Glauber Galvão.
 3. Preparar a base de engenharia (`uv`, `pytest`, `ruff`, pacote `visiondoc`), `config/pipeline.yaml` e o carregamento e particionamento dos datasets.
 4. Implementar ingestão, identificação e linhas de erro.
 5. Implementar pré-processamento e transcrição.

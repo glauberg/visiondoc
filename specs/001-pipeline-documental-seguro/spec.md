@@ -1,9 +1,9 @@
 # Especificação: pipeline documental multimodal seguro
 
-- **Estado:** aprovada em 2026-11-21 (alinhada à versão 2.1 da documentação)
-- **Responsáveis:** Bruno Silva (aprovação)
-- **Última atualização:** 2026-11-21
-- **Base:** [requisitos do domínio 2.0](../../docs/domain/requirements.md), [regras de negócio](../../docs/domain/business-rules.md), [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md) a [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md) e contratos em [`docs/contracts/`](../../docs/contracts/)
+- **Estado:** revisada em 2026-11-22 para adotar o Ollama como servidor do VLM ([ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)); **aguardando aprovação de Glauber Galvão**. A versão anterior (com `vLLM`) foi aprovada em 2026-11-21 por Bruno Silva
+- **Responsáveis:** Glauber Galvão (aprovação)
+- **Última atualização:** 2026-11-22
+- **Base:** [requisitos do domínio 2.0](../../docs/domain/requirements.md), [regras de negócio](../../docs/domain/business-rules.md), [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md) a [ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md) e contratos em [`docs/contracts/`](../../docs/contracts/)
 
 ## Contexto e problema
 
@@ -15,7 +15,7 @@ O pipeline:
 2. pré-processa a imagem (orientação, inclinação, qualidade);
 3. transcreve o inteiro teor com PaddleOCR-VL;
 4. detecta conteúdo suspeito e mascara regiões conhecidas;
-5. usa Qwen3.5-4B ajustado com LoRA ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) para localizar, classificar e extrair campos em JSON restrito;
+5. usa Qwen3.5-4B ajustado com LoRA ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)), servido pelo Ollama ([ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)), para localizar, classificar e extrair campos em JSON restrito;
 6. valida a saída do VLM contra esquema, confiança, pertinência, transcrição e consistência;
 7. grava `documentos.csv` e `alertas.csv` com higienização e neutralização de fórmulas.
 
@@ -60,7 +60,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - **RF-SDD-05 — Transcrição:** produzir, com PaddleOCR-VL, o inteiro teor em ordem de leitura e as caixas de texto de cada página ([ADR-011](../../docs/decisions/ADR-011-transcricao-paddleocr-vl.md)).
 - **RF-SDD-06 — Detecção:** antes do VLM, detectar `conteudo_ativo`, `texto_oculto` e `injecao_prompt` sobre o inventário da ingestão, o texto nativo e a transcrição ([RN-009](../../docs/domain/business-rules.md#rn-009), [ADR-012](../../docs/decisions/ADR-012-deteccao-antes-do-vlm.md)).
 - **RF-SDD-07 — Mascaramento:** para `injecao_prompt` ou `texto_oculto` com localização conhecida, cobrir a região com retângulo sólido na imagem e substituir o trecho por `[TRECHO REMOVIDO]` na transcrição enviada ao VLM; o inteiro teor e a evidência permanecem completos e higienizados ([RN-021](../../docs/domain/business-rules.md#rn-021)).
-- **RF-SDD-08 — VLM:** chamar o Qwen3.5-4B + LoRA, com pesos quantizados em 8 bits servidos por versão do `vLLM` que suporte Qwen3.5, entrada multimodal e LoRA sobre modelo quantizado ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)), com instrução de sistema fixa e versionada, imagem e transcrição delimitada no turno do usuário, decodificação estruturada conforme [contrato da saída do VLM](../../docs/contracts/saida-vlm.md) e temperatura 0 ([RN-022](../../docs/domain/business-rules.md#rn-022)).
+- **RF-SDD-08 — VLM:** chamar o Qwen3.5-4B + LoRA, servido localmente pelo Ollama, com o modelo `qwen3.5:4b` em Q4_K_M e o adaptador LoRA em GGUF ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md), [ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)), por endereço restrito à própria máquina, com instrução de sistema fixa e versionada, imagem e transcrição delimitada no turno do usuário, decodificação estruturada (esquema em `format`, com `think` desligado) conforme [contrato da saída do VLM](../../docs/contracts/saida-vlm.md), coordenadas de `bbox` de 0 a 1000 convertidas para pixels, confiança do tipo a partir dos `top_logprobs` e temperatura 0 ([RN-022](../../docs/domain/business-rules.md#rn-022)).
 - **RF-SDD-09 — Localização e classificação:** cada documento identificado na página gera um item com `tipo`, `face` e `bbox`; frente e verso do mesmo tipo em páginas consecutivas são unidos em uma linha com `face = ambas`, e página sem documento de identificação gera linha `outros` ([RN-029](../../docs/domain/business-rules.md#rn-029)); `indefinido` é atribuído apenas pela regra de confiança, calculada a partir dos logprobs ([RN-003](../../docs/domain/business-rules.md#rn-003), [RN-004](../../docs/domain/business-rules.md#rn-004), [RN-007](../../docs/domain/business-rules.md#rn-007)).
 - **RF-SDD-10 — Extração:** extrair `nome`, `cpf`, `numero_documento`, `data_nascimento`, `data_emissao`, `data_validade`, `orgao_emissor`, `filiacao`, `naturalidade`, `doc_origem` e `categoria_habilitacao`, conforme a tabela de pertinência por tipo do contrato; campo ilegível ou ausente fica vazio ([ADR-014](../../docs/decisions/ADR-014-extracao-de-campos.md), [RN-023](../../docs/domain/business-rules.md#rn-023), [RN-028](../../docs/domain/business-rules.md#rn-028)).
 - **RF-SDD-11 — Validação:** validar esquema, confiança, pertinência ao tipo, respaldo de cada campo na transcrição e consistência de CPF e datas; campo sem respaldo é esvaziado; falhas geram ocorrências `campo_sem_respaldo` ou `dado_inconsistente` ([ADR-013](../../docs/decisions/ADR-013-validacao-saida-vlm.md), [RN-024](../../docs/domain/business-rules.md#rn-024) a [RN-027](../../docs/domain/business-rules.md#rn-027)).
@@ -69,7 +69,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - **RF-SDD-14 — Segurança do CSV:** normalizar NFC, remover caracteres de controle e `Cf` (exceto quebras de linha do inteiro teor), neutralizar fórmulas e truncar evidências em 500 caracteres ([RN-014](../../docs/domain/business-rules.md#rn-014), [RN-015](../../docs/domain/business-rules.md#rn-015), [RN-017](../../docs/domain/business-rules.md#rn-017)).
 - **RF-SDD-15 — Versão:** toda linha registra `versao_pipeline`, `modelo_vlm`, `modelo_transcricao` e `data_processamento` ([RN-019](../../docs/domain/business-rules.md#rn-019)).
 - **RF-SDD-16 — Revisão amostral:** permitir seleção aleatória de documentos para conferência humana e registrar conferências e correções de forma rastreável, sem pré-condição por documento nem coluna obrigatória no CSV ([RF-07](../../docs/domain/requirements.md)). **Fora do primeiro incremento:** adiado para especificação futura (Q-17).
-- **RF-SDD-17 — Ajuste LoRA:** treinar o adaptador do Qwen3.5-4B com QLoRA 4 bits conforme [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md) e [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md), com BID e `tech4humans/br-doc-extraction`, particionamento antes de composição ou aumento, exemplos no formato do [contrato da saída do VLM](../../docs/contracts/saida-vlm.md) e rastreamento em MLflow; o modelo *zero-shot* é avaliado como linha de base.
+- **RF-SDD-17 — Ajuste LoRA:** treinar o adaptador do Qwen3.5-4B com QLoRA 4 bits conforme [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md) e [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md), convertendo o adaptador para GGUF para uso no Ollama ([ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)), com BID e `tech4humans/br-doc-extraction`, particionamento antes de composição ou aumento, exemplos no formato do [contrato da saída do VLM](../../docs/contracts/saida-vlm.md) e rastreamento em MLflow; o modelo *zero-shot* é avaliado como linha de base.
 
 ## Requisitos não funcionais
 
@@ -153,7 +153,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - [ ] Formato real e tamanho são validados antes de qualquer outra etapa; nenhum serviço externo é chamado.
 - [ ] Conteúdo ativo de PDF sintético é inventariado antes da remoção e nunca executado.
 - [ ] Documentos sintéticos em todas as orientações previstas são processados.
-- [ ] Prova de conceito na GPU de 8 GB carrega o Qwen3.5-4B em 8 bits com o adaptador LoRA no `vLLM` e devolve JSON válido com logprobs para uma página sintética com imagem e transcrição.
+- [ ] Prova de conceito no Ollama carrega o `qwen3.5:4b` com o adaptador LoRA convertido para GGUF e devolve JSON válido com logprobs para uma página sintética com imagem e transcrição. *(Sem o adaptador, a imagem, o esquema JSON e os logprobs foram verificados em 2026-11-22.)*
 - [ ] Tipos, faces, campos e formatos correspondem aos contratos `saida-vlm`, `documentos.csv` e `alertas.csv` vigentes.
 - [ ] Campos não pertinentes ao tipo, sem respaldo ou com data inválida são esvaziados e geram a ocorrência correspondente.
 - [ ] Regiões suspeitas localizadas são mascaradas na entrada do VLM e registradas com `mascarado = sim`.
@@ -176,7 +176,7 @@ Questões levantadas em 2026-11-21 e respondidas na mesma data. As resolvidas in
 - **Q-03 — Resolvida (2026-11-21):** mantém-se `filiacao` como lista sem distinção de papel; `agents.md` foi alinhado ao contrato.
 - **Q-04 — Resolvida (2026-11-21):** prevalece `validacao = falhou` com tipo `indefinido` quando a saída foge do esquema; [RN-027](../../docs/domain/business-rules.md#rn-027) foi ajustada e mantém vazio para `outros`, `indefinido` por confiança e erro.
 - **Q-05 — Resolvida (2026-11-21):** JPEG é convertido em PDF de uma página após decodificação isolada, sem reamostragem; `arquivo` e `hash_arquivo` referem-se ao original ([ING-SEC-10](../../docs/security/pdf-ingestion.md)).
-- **Q-06 — Resolvida (2026-11-21):** `.env.example` passou a listar apenas variáveis de execução local (endpoint do `vLLM`, modelos, adaptador, diretórios e configuração), sem chaves de API.
+- **Q-06 — Resolvida (2026-11-21):** `.env.example` passou a listar apenas variáveis de execução local (endereço do Ollama, modelos, adaptador, diretórios e configuração), sem chaves de API.
 
 ### Lacunas que bloqueiam a implementação
 
@@ -202,7 +202,7 @@ Questões levantadas em 2026-11-21 e respondidas na mesma data. As resolvidas in
 
 ### Necessárias antes do uso operacional
 
-- **Q-23 — Parcialmente resolvida (2026-11-21):** GPU disponível de 8 GB; Qwen3.5-4B com QLoRA 4 bits no ajuste e pesos em 8 bits (FP8 ou INT8) na inferência; o `vLLM` adotado deve suportar Qwen3.5, entrada multimodal e LoRA sobre modelo quantizado em 8 bits, confirmado por prova de conceito antes da implementação ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)). Pendentes: executar a prova de conceito e definir metas de desempenho.
+- **Q-23 — Parcialmente resolvida (2026-11-22, revisada):** Qwen3.5-4B com QLoRA 4 bits no ajuste, servido pelo Ollama com pesos Q4_K_M na inferência, em GPU de 4 GB com parte do modelo em CPU ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md), [ADR-017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)). Verificado em 2026-11-22: imagem, esquema JSON, logprobs e `bbox` de 0 a 1000; cerca de 22 s por página com o modelo carregado e 76 s na primeira chamada. Pendentes: provar a conversão e a carga do adaptador LoRA em GGUF no Ollama com o modelo multimodal e definir metas de desempenho; a confiança do tipo por logprobs deve ser recalibrada com o adaptador (em *zero-shot* ficou abaixo do limiar de 0,5 em um caso real).
 - **Q-24 — Resolvida (2026-11-21):** a meta de 90% é 1 − CER dos campos extraídos frente à referência, por tipo, nas partições de teste do BID e do `br-doc-extraction`, valendo para cada um dos dois datasets separadamente ([dados e avaliação](../../docs/domain/evaluation.md)).
 - **Q-25 — Parcialmente resolvida (2026-11-21):** a fase de desenvolvimento e testes não admite dados reais nem documentos de processos judiciais; usa apenas BID e `br-doc-extraction`. Pendentes, para eventual uso operacional futuro: controlador, base legal, retenção, descarte e acesso ([governança de dados](../../docs/privacy/data-governance.md)).
 - **Q-26 — Adiada (2026-11-21):** revisão amostral fora do primeiro incremento (Q-17); responsáveis, taxa, papéis e persistência das correções serão tratados na especificação futura.
@@ -221,6 +221,6 @@ Questões levantadas em 2026-11-21 e respondidas na mesma data. As resolvidas in
 - [Requisitos do domínio](../../docs/domain/requirements.md), [regras de negócio](../../docs/domain/business-rules.md), [dados e avaliação](../../docs/domain/evaluation.md)
 - [Arquitetura lógica](../../docs/architecture/overview.md), [componentes](../../docs/architecture/components.md)
 - Contratos: [saída do VLM](../../docs/contracts/saida-vlm.md), [`documentos.csv`](../../docs/contracts/documentos-csv.md), [`alertas.csv`](../../docs/contracts/alertas-csv.md)
-- ADRs vigentes: [001](../../docs/decisions/ADR-001-entrada-pdf-nao-confiavel.md), [005](../../docs/decisions/ADR-005-deteccao-nao-bloqueante.md), [006](../../docs/decisions/ADR-006-alertas-em-csv.md), [007](../../docs/decisions/ADR-007-remocao-auditoria.md), [008](../../docs/decisions/ADR-008-saida-csv.md), [009](../../docs/decisions/ADR-009-execucao-local.md), [010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md), [011](../../docs/decisions/ADR-011-transcricao-paddleocr-vl.md), [012](../../docs/decisions/ADR-012-deteccao-antes-do-vlm.md), [013](../../docs/decisions/ADR-013-validacao-saida-vlm.md), [014](../../docs/decisions/ADR-014-extracao-de-campos.md), [015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)
+- ADRs vigentes: [001](../../docs/decisions/ADR-001-entrada-pdf-nao-confiavel.md), [005](../../docs/decisions/ADR-005-deteccao-nao-bloqueante.md), [006](../../docs/decisions/ADR-006-alertas-em-csv.md), [007](../../docs/decisions/ADR-007-remocao-auditoria.md), [008](../../docs/decisions/ADR-008-saida-csv.md), [009](../../docs/decisions/ADR-009-execucao-local.md), [010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md), [011](../../docs/decisions/ADR-011-transcricao-paddleocr-vl.md), [012](../../docs/decisions/ADR-012-deteccao-antes-do-vlm.md), [013](../../docs/decisions/ADR-013-validacao-saida-vlm.md), [014](../../docs/decisions/ADR-014-extracao-de-campos.md), [015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md), [017](../../docs/decisions/ADR-017-ollama-servidor-do-vlm.md)
 - Segurança: [ingestão](../../docs/security/pdf-ingestion.md), [detecção](../../docs/security/malicious-content-detection.md), [alertas](../../docs/security/audit-and-alerting.md), [exportação CSV](../../docs/security/csv-export.md), [modelo de ameaças](../../docs/security/threat-model.md)
 - Privacidade: [governança de dados](../../docs/privacy/data-governance.md)
