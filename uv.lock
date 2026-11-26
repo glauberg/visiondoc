@@ -3035,6 +3035,7 @@ source = { editable = "." }
 dependencies = [
     { name = "clamd" },
     { name = "filelock" },
+    { name = "httpx" },
     { name = "numpy" },
     { name = "opencv-python-headless" },
     { name = "pikepdf" },
@@ -3068,6 +3069,7 @@ notebook = [
 requires-dist = [
     { name = "clamd", specifier = ">=1.0.2" },
     { name = "filelock", specifier = ">=3.13" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "llm-guard", marker = "extra == 'modelos'", specifier = ">=0.3" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python-headless", specifier = ">=4.9" },
