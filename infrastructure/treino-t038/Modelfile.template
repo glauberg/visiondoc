@@ -1,0 +1,3 @@
+FROM qwen3.5:4b
+ADAPTER {{ADAPTADOR}}
+PARAMETER temperature 0
