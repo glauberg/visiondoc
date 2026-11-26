@@ -18,5 +18,6 @@ Formato: contexto, decisão, alternativas consideradas e consequências. Um ADR 
 | [ADR-012](ADR-012-deteccao-antes-do-vlm.md) | Detecção antes do VLM e mascaramento | Aceito |
 | [ADR-013](ADR-013-validacao-saida-vlm.md) | Validação da saída do VLM | Aceito |
 | [ADR-014](ADR-014-extracao-de-campos.md) | Extração de campos no escopo | Aceito |
-| [ADR-015](ADR-015-vlm-qwen35-4b.md) | Qwen3.5-4B como modelo principal por limite de hardware | Aceito |
+| [ADR-015](ADR-015-vlm-qwen35-4b.md) | Qwen3.5-4B como modelo principal por limite de hardware | Aceito, alterado |
 | [ADR-016](ADR-016-inventario-e-neutralizacao.md) | Inventário com pikepdf e neutralização própria de fórmulas | Aceito |
+| [ADR-017](ADR-017-treino-br-doc-extraction.md) | Treino inicial com o dataset tech4humans/br-doc-extraction | Aceito |

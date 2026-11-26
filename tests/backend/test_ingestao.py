@@ -104,6 +104,15 @@ def test_jpeg_convertido_sem_reamostragem_e_sem_metadados(tmp_path, cfg):
     assert convertida.tobytes() == original.tobytes()
 
 
+def test_jpeg_com_largura_nao_multipla_mantem_pixels(tmp_path, cfg):
+    dados = jpeg_sintetico(640, 400)
+    r = _ingerir(tmp_path, "m.jpg", dados, cfg)
+    original = Image.open(io.BytesIO(dados)).convert("RGB")
+    convertida = Image.open(r.paginas[0].imagem).convert("RGB")
+    assert convertida.size == (640, 400)
+    assert convertida.tobytes() == original.tobytes()
+
+
 def test_imagem_acima_do_lado_maximo_gera_tamanho_excedido(tmp_path, cfg):
     r = _ingerir(
         tmp_path, "g.jpg", jpeg_sintetico(1200, 800), alterar(cfg, "limites", lado_max_px=1000)

@@ -178,8 +178,8 @@ def _jpeg_para_pdf(dados: bytes, cfg: Configuracao) -> tuple[bytes, int | None]:
     except Exception as erro:
         raise ErroArquivo(MotivoErro.ARQUIVO_ILEGIVEL, "JPEG ilegível") from erro
 
-    dpi = cfg.rasterizacao.dpi
-    largura_pt, altura_pt = largura * 72 / dpi, altura * 72 / dpi
+    # Página com 1 ponto por pixel: rasterizada na escala 1, reproduz os pixels exatos.
+    largura_pt, altura_pt = largura, altura
     pdf = pikepdf.new()
     pagina = pdf.add_blank_page(page_size=(largura_pt, altura_pt))
     figura = pikepdf.Stream(pdf, zlib.compress(rgb))
@@ -245,7 +245,8 @@ def _processar(formato: str, dados: bytes, diretorio: str, prefixo: str, cfg: Co
     if inventariar(saneado):
         raise ErroArquivo(MotivoErro.FALHA_PROCESSAMENTO, "saneamento incompleto")
 
-    escala = cfg.rasterizacao.dpi / 72
+    # PDF a 300 DPI; PDF vindo de JPEG tem 1 ponto por pixel e é rasterizado sem reamostragem.
+    escala = 1.0 if formato == "jpeg" else cfg.rasterizacao.dpi / 72
     paginas = []
     documento = pdfium.PdfDocument(saneado)
     try:

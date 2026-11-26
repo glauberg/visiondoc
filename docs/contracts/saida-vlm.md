@@ -42,7 +42,7 @@ Regras do esquema:
 - `tipo` não admite `indefinido`: essa classe é atribuída depois, pela regra de confiança ([RN-004](../domain/business-rules.md#rn-004)).
 - `bbox` é convertido do formato nativo de coordenadas do modelo para pixels da imagem no pós-processamento.
 - Campo não legível ou ausente no documento é `null` (ou lista vazia em `filiacao`); o modelo não deve inferir valores.
-- `campos` é um objeto vazio para `outros`.
+- *(Alterada em 2026-11-25, [ADR-017](../decisions/ADR-017-treino-br-doc-extraction.md))* Todas as chaves de `campos` são obrigatórias; para `outros`, todas são `null` (e `filiacao` é lista vazia).
 
 ## Campos por tipo
 

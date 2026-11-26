@@ -49,7 +49,7 @@ Licenças Apache-2.0 a verificar na versão adotada.
 Modelo principal: Qwen3.5-4B ([ADR-015](../decisions/ADR-015-vlm-qwen35-4b.md)), Apache-2.0, ajustado com LoRA sobre o modelo de linguagem e codificador de visão congelado.
 
 - Carga: Hugging Face `transformers`;
-- Ajuste: `peft`, `bitsandbytes`, `trl`;
+- Ajuste: `transformers` (`Trainer`), `peft` e `bitsandbytes`, com coletor próprio que exclui da perda os campos sem anotação ([ADR-017](../decisions/ADR-017-treino-br-doc-extraction.md));
 - Rastreamento: MLflow;
 - Inferência: `vLLM`;
 - Saída: decodificação guiada por esquema JSON;

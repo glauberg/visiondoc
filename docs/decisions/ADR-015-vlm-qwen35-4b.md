@@ -2,6 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-11-21
+- **Alterado por:** [ADR-017](ADR-017-treino-br-doc-extraction.md) (dados do ajuste: só `br-doc-extraction` nesta fase)
 - **Altera:** [ADR-010](ADR-010-vlm-qwen35-9b-lora.md) (modelo e configuração de hardware; o método de ajuste com LoRA e a forma de inferência permanecem)
 
 ## Contexto

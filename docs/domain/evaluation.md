@@ -10,6 +10,8 @@ O Brazilian Identity Document Dataset contém imagens sintéticas e informaçõe
 
 ### br-doc-extraction
 
+*(2026-11-25)* Fonte inicial e única do treino da T038, carregada com `load_dataset("tech4humans/br-doc-extraction")`, com as partições do próprio dataset; decisões em [ADR-017](../decisions/ADR-017-treino-br-doc-extraction.md).
+
 O dataset `tech4humans/br-doc-extraction` contém imagem e resposta JSON de campos. Serve ao ajuste de extração e, pela sua própria partição de teste, à medição da meta de 90%; seus resultados são reportados separadamente e não substituem os do BID.
 
 ### Dados sintéticos complementares

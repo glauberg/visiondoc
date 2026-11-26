@@ -74,7 +74,7 @@ class InfoModelo:
 class InfoDados:
     particoes: dict[str, dict[str, dict[str, int]]]  # dataset -> partição -> classe -> n
     aumentos: list[str]
-    semente_particao: int
+    semente_particao: int | None  # None: partições do próprio dataset
 
 
 @dataclass(frozen=True)
@@ -385,8 +385,12 @@ def gerar_relatorio(
         _tabela(["Dataset", "Partição", "Documentos"], linhas_dados),
         "",
         (
-            f"Aumentos: {', '.join(dados.aumentos) or 'nenhum'}. Semente do particionamento: "
-            f"{dados.semente_particao}."
+            f"Aumentos: {', '.join(dados.aumentos) or 'nenhum'}. Particionamento: "
+            + (
+                f"semente {dados.semente_particao}."
+                if dados.semente_particao is not None
+                else "partições do próprio dataset."
+            )
         ),
         "",
     ]

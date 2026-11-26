@@ -1,0 +1,37 @@
+# Configuração versionada do treino do adaptador LoRA (T038, ADR-010, ADR-015, ADR-017).
+versao: "1"
+dataset: "tech4humans/br-doc-extraction"
+modelo_base: "Qwen/Qwen3.5-4B"
+revisao: null
+semente: 42
+# Formato de coordenadas do bbox na saída do modelo. "relativo_1000" foi sugerido pela
+# prova de conceito T020 e precisa ser confirmado com o modelo (ADR-017).
+formato_bbox: "relativo_1000"
+lado_max_imagem: 1280
+max_comprimento: 4096
+
+quantizacao:          # QLoRA no ajuste (ADR-015)
+  bits: 4
+  tipo: "nf4"
+  dupla: true
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  alvos: '.*language_model.*\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)'
+
+otimizacao:
+  taxa_aprendizado: 2.0e-4
+  epocas: 2
+  lote: 1
+  acumulacao: 8
+  aquecimento: 0.03
+  agendador: "cosine"
+  checkpointing: true
+
+avaliacao:
+  max_novos_tokens: 512
+  limiar_rejeicao: 0.5   # RN-004
+  limiar_respaldo: 90    # RN-024
+  n_bootstrap: 1000
