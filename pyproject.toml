@@ -2,7 +2,7 @@
 name = "visiondoc"
 version = "2.1.0"
 description = "Pipeline de classificação e extração de documentos de identificação (especificação 001)"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "pydantic>=2.7",
     "pyyaml>=6.0",

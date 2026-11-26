@@ -37,6 +37,7 @@ BASE_DRIVE = DRIVE / "visiondoc"
 BASE_LOCAL = Path("/content/visiondoc-dados")
 ETAPAS = ("verificar", "instalar", "preparar", "treinar", "tudo")
 CC_MINIMA = 8.0  # bfloat16 (L4, A100); a T4 (7.5) não atende
+PYTHON_ACEITO = ((3, 12), (3, 13))  # requires-python do pyproject.toml
 ESPACO_MINIMO_GB = 30.0  # pesos do modelo, cache de exemplos, adaptador e checkpoints
 INDICE_PADDLE = "https://www.paddlepaddle.org.cn/packages/stable/cu126/"
 DATASET = "tech4humans/br-doc-extraction"
@@ -124,9 +125,16 @@ def consultar_gpu() -> Gpu | None:
 
 
 def avaliar_condicoes(
-    gpu: Gpu | None, espaco_livre_gb: float, drive_montado: bool
+    gpu: Gpu | None,
+    espaco_livre_gb: float,
+    drive_montado: bool,
+    versao_python: tuple[int, int] = sys.version_info[:2],
 ) -> tuple[list[str], list[str]]:
     problemas, avisos = [], []
+    if not PYTHON_ACEITO[0] <= versao_python <= PYTHON_ACEITO[1]:
+        problemas.append(
+            f"Python {versao_python[0]}.{versao_python[1]} não suportado: o pacote aceita 3.12 e 3.13."
+        )
     if gpu is None:
         problemas.append(
             "Nenhuma GPU NVIDIA encontrada: ative uma GPU L4 ou A100 em "

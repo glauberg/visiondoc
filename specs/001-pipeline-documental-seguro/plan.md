@@ -6,7 +6,7 @@
 
 ## Abordagem
 
-Implementar o pipeline em Python 3.12 como uma sequência de etapas com contratos explícitos entre si, seguindo a [arquitetura lógica 2.0](../../docs/architecture/overview.md) e os [componentes tecnológicos](../../docs/architecture/components.md):
+Implementar o pipeline em Python 3.12 ou 3.13 como uma sequência de etapas com contratos explícitos entre si, seguindo a [arquitetura lógica 2.0](../../docs/architecture/overview.md) e os [componentes tecnológicos](../../docs/architecture/components.md):
 
 1. **Ingestão e saneamento:** validar formato real, tamanho e limites; calcular SHA-256; inventariar e remover conteúdo ativo de PDF, extrair texto nativo e rasterizar a 300 DPI; decodificar JPEG isolado com Pillow, descartar metadados e convertê-lo em PDF de uma página.
 2. **Pré-processamento:** normalizar orientação, inclinação, espelhamento (comparação da confiança do OCR), contraste e ruído, registrando a transformação para converter `bbox` à página original.

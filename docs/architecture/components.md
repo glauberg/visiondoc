@@ -1,6 +1,6 @@
 # Componentes tecnológicos
 
-Linguagem de implementação: Python 3.12. Versão: 2.0 (2026-11-20).
+Linguagem de implementação: Python 3.12 ou 3.13 (3.13 aceito em 2026-11-25 para o ambiente do Google Colab). Versão: 2.0 (2026-11-20).
 
 ## Base de engenharia
 

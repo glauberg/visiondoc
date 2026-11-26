@@ -49,3 +49,11 @@ def test_subetapa_repassa_as_opcoes():
     assert opcoes[:2] == ["--etapa", "treinar"]
     assert colab.argumentos(opcoes).limite_treino == 20
     assert colab.argumentos(opcoes).zero_shot is False
+
+
+def test_aceita_python_312_e_313_e_recusa_outros():
+    gpu = colab.Gpu("NVIDIA L4", 22.5, 8.9, "x")
+    for versao in ((3, 12), (3, 13)):
+        assert colab.avaliar_condicoes(gpu, 80, True, versao)[0] == []
+    problemas, _ = colab.avaliar_condicoes(gpu, 80, True, (3, 14))
+    assert any("Python 3.14" in p for p in problemas)
