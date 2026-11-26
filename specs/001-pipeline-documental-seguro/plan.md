@@ -1,7 +1,7 @@
 # Plano: pipeline documental multimodal seguro
 
 - **Especificação:** [`spec.md`](spec.md)
-- **Estado:** aprovado em 2026-11-21 por Bruno Silva. Questões abertas que não impedem a aprovação: Q-23 (prova de conceito do `vLLM` em 8 bits e metas de desempenho) e Q-25 (governança de dados para uso operacional futuro)
+- **Estado:** aprovado em 2026-11-21 por Bruno Silva. Questões abertas que não impedem a aprovação: Q-23 (prova de conceito do `vLLM` em 8 bits na GPU de 8 GB) e Q-25 (governança de dados para uso operacional futuro)
 - **Última atualização:** 2026-11-21
 
 ## Abordagem
@@ -66,6 +66,7 @@ Todos os testes usam dados sintéticos (BID, `br-doc-extraction`, composições 
 - **Falhas:** arquivo de alertas indisponível (regravação ao fim do lote), regravação indisponível (contingência e código de saída), falha de uma etapa em um documento (linha de erro, lote continua).
 - **Meta de 90%:** 1 − CER dos campos extraídos por tipo, nas partições de teste do BID e do `br-doc-extraction`; a meta vale para cada dataset separadamente.
 - **Análise de desempenho da classificação (RNF-SDD-10):** módulo de avaliação separado do pipeline que gera acurácia, F1 macro e precisão/revocação/F1 por classe sobre os documentos aceitos, com a cobertura, e matriz de confusão (absoluta e normalizada por linha, com coluna `indefinido`), para tipo e para tipo e face, com pareamento por IoU ≥ 0,5 e IC 95% por *bootstrap* com 1.000 reamostragens. Proposta de componentes: `scikit-learn` e `matplotlib`, sujeitos à verificação de licença. O módulo é testado com casos de previsões conhecidas cujo resultado é calculado à mão.
+- **Relatório de treinamento (RF-SDD-18):** gerador que recebe as métricas do módulo de análise, as informações de ambiente (`torch.cuda`, `platform`, versões dos pacotes), do modelo (contagem de parâmetros pelo `peft`), dos dados e dos tempos de treino e inferência, e grava `relatorio.md`, gráficos PNG (`matplotlib`) e `metricas.json`. É chamado ao fim do treino e da avaliação da linha de base. Testado com uma execução sintética fictícia, verificando a presença de cada seção e dos gráficos e a ausência de nome de máquina e caminhos locais.
 
 Os testes dos modelos (PaddleOCR-VL, Qwen3.5-4B, detector de injeção) são separados dos testes unitários e substituídos por dublês nos testes das demais etapas.
 
@@ -91,5 +92,5 @@ Não iniciar implementação enquanto a especificação não for aprovada.
 6. Implementar detecção, mascaramento e gravação de alertas com regravação e contingência.
 7. Treinar o adaptador LoRA e medir o *zero-shot* como linha de base.
 8. Implementar a chamada ao VLM, a validação, a junção de frente e verso e o CSV principal.
-9. Implementar o módulo de análise de desempenho da classificação.
+9. Implementar o módulo de análise de desempenho da classificação e o gerador do relatório de treinamento.
 10. Executar avaliação, análise das confusões, revisão de segurança e verificação dos critérios de aceitação.

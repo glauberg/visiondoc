@@ -42,7 +42,7 @@ Os identificadores `Q-xx` referem-se às questões da especificação.
 
 ### Antes do uso operacional
 
-- [ ] **T020** Executar prova de conceito do Qwen3.5-4B em 8 bits (FP8 ou INT8) com adaptador LoRA no `vLLM` na GPU de 8 GB (imagem + transcrição → JSON válido com logprobs), fixar a versão do `vLLM` e definir metas de desempenho (Q-23; [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) — depende de: T015. *(2026-11-21: scripts e instruções em [`infrastructure/poc-t020/`](../../infrastructure/poc-t020/README.md); aguardando execução na máquina com a GPU de 8 GB, pois a máquina de desenvolvimento não tem GPU NVIDIA.)*
+- [ ] **T020** Executar prova de conceito do Qwen3.5-4B em 8 bits (FP8 ou INT8) com adaptador LoRA no `vLLM` na GPU de 8 GB (imagem + transcrição → JSON válido com logprobs), fixar a versão do `vLLM` e definir metas de desempenho (Q-23; [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)) — depende de: T015. *(2026-11-21: scripts e instruções em [`infrastructure/poc-t020/`](../../infrastructure/poc-t020/README.md); aguardando execução na máquina com a GPU de 8 GB, pois a máquina de desenvolvimento não tem GPU NVIDIA. Metas de desempenho definidas em 2026-11-25: ≤ 30 s por página e ≤ 7,5 GB de memória de GPU, como indicadores reportados.)*
 - [x] **T021** Definir operacionalmente os 90% e o corpus aprovado (Q-24) — depende de: T003.
 - [ ] **T022** *(Necessária só para eventual uso operacional; a fase de desenvolvimento e testes não admite dados reais)* Aprovar avaliação jurídica/privacidade: controlador, base legal, retenção, descarte e acesso (Q-25) — depende de: T007, T012.
 - [ ] **T023** *(Adiada para especificação futura — Q-17)* Definir responsáveis, taxa, frequência, papéis e persistência da revisão amostral (Q-26) — depende de: T015, T022.
@@ -63,9 +63,10 @@ Somente após T019 e solicitação explícita.
 - [ ] **T032** Implementar validação de esquema, confiança, pertinência, respaldo e consistência — depende de: T004, T013, T031.
 - [ ] **T033** Implementar `documentos.csv` com agrupamento de documentos, neutralização e validação de esquema — depende de: T010, T011, T012, T032.
 - [ ] **T034** *(Fora do primeiro incremento — Q-17)* Implementar revisão amostral e registro de correções — depende de: T015, T023, T033.
-- [ ] **T038** Treinar o adaptador LoRA (BID + `br-doc-extraction`), com particionamento prévio, rastreamento em MLflow e avaliação *zero-shot* como linha de base (RF-SDD-17) — depende de: T020, T024.
-- [ ] **T037** Implementar o módulo de análise de desempenho da classificação: acurácia, F1 macro, métricas por classe e matriz de confusão (absoluta e normalizada, com `indefinido`) para tipo e para tipo e face, nos recortes de RNF-SDD-10 — depende de: T024, T036.
-- [ ] **T035** Executar avaliação de métricas, análise das matrizes de confusão e das principais confusões, revisão de segurança e verificação dos critérios de aceitação, somente com dados sintéticos — depende de: T021, T030, T033, T037.
+- [ ] **T038** Treinar o adaptador LoRA (BID + `br-doc-extraction`), com particionamento prévio, rastreamento em MLflow e avaliação *zero-shot* como linha de base (RF-SDD-17); ao concluir cada treinamento, gera o relatório da T039 — depende de: T020, T024, T039.
+- [x] **T037** Implementar o módulo de análise de desempenho da classificação: acurácia, F1 macro, métricas por classe e matriz de confusão (absoluta e normalizada, com `indefinido`) para tipo e para tipo e face, nos recortes de RNF-SDD-10 — depende de: T024, T036. *(Concluída em 2026-11-25: `visiondoc.avaliacao.metricas`, com pareamento por IoU, IC por *bootstrap*, curva de cobertura, calibração (ECE) e 1 − CER dos campos.)*
+- [x] **T039** Implementar o gerador do relatório de treinamento: `relatorio.md`, gráficos PNG e `metricas.json` com identificação, ambiente, modelo, dados, treino, inferência e desempenho, classificação (acurácia, F1 macro, matrizes de confusão), extração e comparação com a linha de base (RF-SDD-18) — depende de: T037. *(Concluída em 2026-11-25: `visiondoc.avaliacao.relatorio`; testado com execução fictícia. A coleta do pico de memória, dos tempos e das curvas de perda depende da T038.)*
+- [ ] **T035** Executar avaliação de métricas, análise das matrizes de confusão e das principais confusões, revisão de segurança e verificação dos critérios de aceitação, somente com dados sintéticos — depende de: T021, T030, T033, T037, T039.
 
 ## Verificação de conclusão
 

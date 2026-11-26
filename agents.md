@@ -8,7 +8,7 @@ O VisionDoc tem como objetivo especificar e, mediante solicitação, desenvolver
 
 A solução também deve avaliar documentos quanto a conteúdo potencialmente malicioso, incluindo injeção de prompts ou código, instruções embutidas em texto ou imagem, macros, scripts e outros artefatos suspeitos. O processamento automatizado apoia a triagem: não substitui profissionais do direito, não autentica documentos por si só e não decide o mérito de um processo.
 
-A especificação 001 está aprovada e sua implementação está em andamento em `src/backend/` (tarefas T024 a T030 concluídas). Novas implementações continuam dependendo de solicitação explícita.
+A especificação 001 está aprovada e sua implementação está em andamento em `src/backend/` (tarefas T024 a T030, T037 e T039 concluídas). Novas implementações continuam dependendo de solicitação explícita.
 
 ## 2. Escopo, limites e resultados esperados
 

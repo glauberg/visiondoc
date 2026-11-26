@@ -39,7 +39,7 @@ O dataset `tech4humans/br-doc-extraction` contém imagem e resposta JSON de camp
 | Transcrição | CER e WER |
 | Atos maliciosos | Precisão, revocação e falsos positivos por categoria |
 | Segurança da injeção | Taxa de sucesso com e sem mascaramento e validação |
-| Desempenho | Tempo por página, GPU e memória |
+| Desempenho | Tempo por página, GPU e memória; metas reportadas, não eliminatórias: pipeline completo ≤ 30 s por página e memória de GPU ≤ 7,5 GB na GPU de 8 GB |
 
 O alvo mínimo é 90% de precisão em nível de caractere em conjunto aprovado, reportado por categoria e condição representativa. Esse limite não é garantia por documento. *(Definido em 2026-11-21)* A meta é medida sobre os **campos extraídos**: 1 − CER entre o valor extraído e o valor de referência, por tipo de documento, nas partições de teste do BID e do `br-doc-extraction`. A meta vale para **cada um dos dois datasets**, reportados separadamente.
 
@@ -83,6 +83,71 @@ As três medidas são reportadas:
 
 Intervalos de confiança de 95% são estimados por *bootstrap* com 1.000 reamostragens. Não há meta mínima de acurácia ou F1 macro (Q-27 da [especificação 001](../../specs/001-pipeline-documental-seguro/spec.md)).
 
+## Relatório por treinamento
+
+*(Definido em 2026-11-25.)* Cada treinamento concluído do adaptador, e cada avaliação da linha de base *zero-shot*, gera automaticamente um diretório `relatorios/treinamentos/<AAAA-MM-DD>-<id_execucao>/` com:
+
+- `relatorio.md`: relatório em Markdown, com as tabelas abaixo e os gráficos embutidos por caminho relativo;
+- `graficos/*.png`: gráficos gerados com `matplotlib`;
+- `metricas.json`: os mesmos valores em formato legível por máquina, para comparar execuções.
+
+O relatório contém apenas dados sintéticos e informações técnicas do ambiente. Não inclui nome de máquina, usuário, caminhos locais nem credenciais.
+
+### Identificação da execução
+
+- identificador, data/hora de início e fim (ISO 8601 com fuso), *commit* do repositório e indicação de alterações não commitadas;
+- `versao_pipeline`, versão de `config/pipeline.yaml`, semente aleatória e identificador da execução no MLflow.
+
+### Ambiente
+
+- GPU: modelo, memória total, *compute capability*, versão do driver e do CUDA;
+- CPU (modelo e núcleos), memória RAM e sistema operacional;
+- versões de Python, `torch`, `transformers`, `peft`, `trl`, `bitsandbytes`, `vllm` e PaddleOCR.
+
+### Modelo
+
+- modelo base e revisão; quantidade total de parâmetros; parâmetros treináveis do LoRA (quantidade e percentual);
+- quantização no ajuste (4 bits) e na inferência (8 bits); configuração do LoRA (rank, alpha, dropout, módulos-alvo e quantidade de módulos); tamanho do adaptador em disco;
+- comprimento máximo de contexto e resolução máxima da imagem enviada.
+
+### Dados
+
+- tamanho das partições de treino, validação e teste, por dataset (BID e `br-doc-extraction`) e no total;
+- distribuição por classe de tipo e de tipo e face em cada partição (tabela e gráfico de barras);
+- composições e aumentos aplicados e a semente do particionamento.
+
+### Treinamento
+
+- hiperparâmetros (taxa de aprendizado, épocas, tamanho de lote, acumulação de gradiente, agendador);
+- tempo total de treino, exemplos por segundo e pico de memória de GPU;
+- curvas de perda de treino e de validação por passo (gráfico).
+
+### Inferência e desempenho
+
+- tempo de carga dos modelos;
+- tempo por página na partição de teste: média, mediana, percentil 95 e máximo, separado por etapa (transcrição, detecção, VLM e validação) quando disponível;
+- pico de memória de GPU na inferência e média de tokens gerados por página;
+- taxa de respostas em JSON válido no contrato;
+- comparação com as metas de desempenho (até 30 s por página e até 7,5 GB de memória), como indicadores, sem efeito eliminatório.
+
+### Classificação
+
+Conforme a [análise de desempenho da classificação](#análise-de-desempenho-da-classificação), para tipo e para tipo e face, por dataset e no agregado:
+
+- acurácia e F1 macro com intervalo de confiança de 95% e cobertura;
+- precisão, revocação, F1 e suporte por classe;
+- matriz de confusão absoluta e normalizada por linha, com coluna `indefinido` (mapas de calor);
+- curva de cobertura por acurácia em função do limiar de rejeição e diagrama de confiabilidade com o ECE (gráficos);
+- lista dos pares de classes mais confundidos.
+
+### Extração
+
+- 1 − CER dos campos extraídos por tipo e por dataset, frente à meta de 90% em cada dataset;
+- acerto exato e F1 por campo e taxa de campos sem respaldo (alucinação).
+
+### Comparação
+
+- os mesmos indicadores da linha de base *zero-shot* e da execução anterior, lado a lado, com a diferença de cada métrica.
 ## Experimentos
 
 1. Comparar a arquitetura 1.0 com classificadores ConvNeXt-Tiny/BERTimbau como linha de base.

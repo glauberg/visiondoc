@@ -70,6 +70,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - **RF-SDD-15 — Versão:** toda linha registra `versao_pipeline`, `modelo_vlm`, `modelo_transcricao` e `data_processamento` ([RN-019](../../docs/domain/business-rules.md#rn-019)).
 - **RF-SDD-16 — Revisão amostral:** permitir seleção aleatória de documentos para conferência humana e registrar conferências e correções de forma rastreável, sem pré-condição por documento nem coluna obrigatória no CSV ([RF-07](../../docs/domain/requirements.md)). **Fora do primeiro incremento:** adiado para especificação futura (Q-17).
 - **RF-SDD-17 — Ajuste LoRA:** treinar o adaptador do Qwen3.5-4B com QLoRA 4 bits conforme [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md) e [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md), com BID e `tech4humans/br-doc-extraction`, particionamento antes de composição ou aumento, exemplos no formato do [contrato da saída do VLM](../../docs/contracts/saida-vlm.md) e rastreamento em MLflow; o modelo *zero-shot* é avaliado como linha de base.
+- **RF-SDD-18 — Relatório de treinamento:** ao fim de cada treinamento concluído, e de cada avaliação da linha de base, gerar automaticamente um relatório em Markdown com gráficos PNG e um `metricas.json`, contendo identificação da execução, ambiente (GPU e versões), características do modelo (parâmetros totais e treináveis, quantização, LoRA), tamanho e distribuição das partições de treino, validação e teste, curvas e tempos de treino, tempo de carga, tempo médio de inferência e memória, acurácia, F1 macro e matrizes de confusão, métricas de extração e comparação com a linha de base, conforme [relatório por treinamento](../../docs/domain/evaluation.md#relatório-por-treinamento).
 
 ## Requisitos não funcionais
 
@@ -81,7 +82,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - **RNF-SDD-06 — Licenças:** componentes com licença restritiva exigem ADR e autorização institucional ([P7](../../.specify/memory/constitution.md)).
 - **RNF-SDD-07 — Reprodutibilidade:** limiares e parâmetros calibráveis ficam em configuração versionada do pipeline ([P6](../../.specify/memory/constitution.md)).
 - **RNF-SDD-08 — Honestidade:** `processado` exige pipeline concluído e não significa documento seguro ou revisado; ausência de alerta não indica segurança; falha de detector não é apresentada como ausência de ameaça.
-- **RNF-SDD-09 — Desempenho:** registrar tempo por página, uso de GPU e memória; metas a definir (Q-23).
+- **RNF-SDD-09 — Desempenho:** registrar tempo por página, uso de GPU e memória. Metas (2026-11-25): tempo do pipeline completo ≤ 30 s por página e memória de GPU ≤ 7,5 GB na inferência, na GPU de 8 GB; sem meta para o tempo de carga dos modelos. As metas são **indicadores reportados** na avaliação e não reprovam a T035.
 - **RNF-SDD-10 — Análise de desempenho da classificação:** reportar acurácia, F1 macro e matriz de confusão (absoluta e normalizada por linha, com coluna `indefinido`) para tipo e para tipo e face, no agregado, por conjunto, por condição representativa, com e sem rejeição e por experimento, conforme [dados e avaliação](../../docs/domain/evaluation.md#análise-de-desempenho-da-classificação); a análise identifica os pares mais confundidos, as rejeições por classe e as confusões a partir de `outros` (Q-27).
 
 ## Dados e privacidade
@@ -163,6 +164,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - [ ] Toda linha, inclusive de erro, registra identificação, situação e versões.
 - [ ] Métricas de [dados e avaliação](../../docs/domain/evaluation.md) são medidas em conjunto aprovado e reportadas por categoria.
 - [ ] Acurácia, F1 macro, métricas por classe e matriz de confusão são geradas reprodutivelmente a partir das previsões e referências do conjunto de teste, nos recortes de RNF-SDD-10, e acompanhadas da análise das principais confusões.
+- [ ] Cada treinamento concluído gera `relatorio.md`, gráficos e `metricas.json` com todas as seções de RF-SDD-18, sem nome de máquina, usuário, caminhos locais ou credenciais.
 - [ ] Ausência de alerta, `processado` e falha de detector nunca são apresentados como documento seguro ou revisado.
 
 ## Questões pendentes e riscos
@@ -202,7 +204,7 @@ Questões levantadas em 2026-11-21 e respondidas na mesma data. As resolvidas in
 
 ### Necessárias antes do uso operacional
 
-- **Q-23 — Parcialmente resolvida (2026-11-21):** GPU disponível de 8 GB; Qwen3.5-4B com QLoRA 4 bits no ajuste e pesos em 8 bits (FP8 ou INT8) na inferência; o `vLLM` adotado deve suportar Qwen3.5, entrada multimodal e LoRA sobre modelo quantizado em 8 bits, confirmado por prova de conceito antes da implementação ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)). Pendentes: executar a prova de conceito e definir metas de desempenho.
+- **Q-23 — Parcialmente resolvida (2026-11-21):** GPU disponível de 8 GB; Qwen3.5-4B com QLoRA 4 bits no ajuste e pesos em 8 bits (FP8 ou INT8) na inferência; o `vLLM` adotado deve suportar Qwen3.5, entrada multimodal e LoRA sobre modelo quantizado em 8 bits, confirmado por prova de conceito antes da implementação ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)). Metas de desempenho definidas em 2026-11-25 (RNF-SDD-09). Pendente: prova de conceito na GPU de 8 GB.
 - **Q-24 — Resolvida (2026-11-21):** a meta de 90% é 1 − CER dos campos extraídos frente à referência, por tipo, nas partições de teste do BID e do `br-doc-extraction`, valendo para cada um dos dois datasets separadamente ([dados e avaliação](../../docs/domain/evaluation.md)).
 - **Q-25 — Parcialmente resolvida (2026-11-21):** a fase de desenvolvimento e testes não admite dados reais nem documentos de processos judiciais; usa apenas BID e `br-doc-extraction`. Pendentes, para eventual uso operacional futuro: controlador, base legal, retenção, descarte e acesso ([governança de dados](../../docs/privacy/data-governance.md)).
 - **Q-26 — Adiada (2026-11-21):** revisão amostral fora do primeiro incremento (Q-17); responsáveis, taxa, papéis e persistência das correções serão tratados na especificação futura.
