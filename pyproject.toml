@@ -23,6 +23,11 @@ modelos = ["paddleocr>=3.0", "llm-guard>=0.3"]
 
 [dependency-groups]
 dev = ["pytest>=8.2", "ruff>=0.5", "pandas>=2.2"]
+notebook = [
+    "ipykernel>=7.4.0",
+    "jupyterlab>=4.6.6",
+    "ollama>=0.6.3",
+]
 
 [build-system]
 requires = ["hatchling"]
