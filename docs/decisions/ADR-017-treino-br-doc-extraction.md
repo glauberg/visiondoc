@@ -22,7 +22,7 @@ A T038 precisa de exemplos no formato do contrato. A fonte inicial definida é a
 
 ## Consequências
 
-- O treino é executável no Colab pelo notebook `infrastructure/colab/t038_treino.ipynb`, com relatório por execução (RF-SDD-18).
+- O treino é executável no Colab pelo script `infrastructure/colab/t038_colab.py`, com relatório por execução (RF-SDD-18).
 - Os resultados não comprovam desempenho em documentos reais, nem em CPF, faces ou páginas com vários documentos.
 - O formato do `bbox` precisa ser confirmado com o modelo; se for outro, muda só `formato_bbox` em `config/treino.yaml`.
 - Rótulos semiautomáticos do dataset podem ter ruído (por exemplo, datas de validade anteriores à emissão).
