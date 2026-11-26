@@ -12,6 +12,7 @@ As 27 questões da [especificação 001](specs/001-pipeline-documental-seguro/sp
 - **Metas de desempenho (2026-11-25):** pipeline completo ≤ 30 s por página e memória de GPU ≤ 7,5 GB na GPU de 8 GB, reportadas como indicadores, sem efeito eliminatório (RNF-SDD-09).
 - **Relatório por treinamento (2026-11-25):** cada treinamento concluído gera `relatorio.md`, gráficos e `metricas.json` com ambiente, modelo, dados, tempos, acurácia, F1 macro, matrizes de confusão e extração (RF-SDD-18, T039).
 - **T038 (2026-11-25):** treino com `tech4humans/br-doc-extraction` ([ADR-017](docs/decisions/ADR-017-treino-br-doc-extraction.md)); `outros` passa a ter todas as chaves com `null`; conversão de JPEG agora com 1 ponto por pixel (corrige reamostragem da T025); script de execução no Colab em `infrastructure/colab/t038_colab.py`.
+- **Python 3.13 (2026-11-25):** o pacote passa a aceitar Python 3.12 e 3.13 (`requires-python = ">=3.12,<3.14"`), porque o Google Colab usa 3.13; a suíte passa nas duas versões.
 - **Engenharia:** Python 3.12, `uv`, `pytest`, `ruff`, `config/pipeline.yaml` validado com `pydantic`, llm-guard como detector de injeção.
 - **Avaliação:** meta de 90% sobre os campos extraídos; análise de acurácia, F1 macro e matriz de confusão sobre documentos aceitos, com cobertura, IoU ≥ 0,5 e IC por *bootstrap*.
 - **Escopo:** treino LoRA incluído; revisão amostral e frontend adiados.
