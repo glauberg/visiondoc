@@ -50,6 +50,7 @@ PERTINENTES = {
         "doc_origem",
     },
     "cpf": {"nome", "cpf", "data_nascimento"},
+    "invoice": set(),  # nota fiscal, sem campos (ADR-019)
     "outros": set(),
 }
 

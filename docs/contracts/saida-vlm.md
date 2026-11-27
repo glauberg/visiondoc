@@ -15,7 +15,7 @@ Esquema JSON que o Qwen3.5-4B deve produzir para cada página. É imposto na inf
 {
   "documentos": [
     {
-      "tipo": "cnh | rg | cpf | outros",
+      "tipo": "cnh | rg | cpf | invoice | outros",
       "face": "frente | verso | ambas | null",
       "bbox": [x1, y1, x2, y2],
       "campos": {
@@ -42,7 +42,7 @@ Regras do esquema:
 - `tipo` não admite `indefinido`: essa classe é atribuída depois, pela regra de confiança ([RN-004](../domain/business-rules.md#rn-004)).
 - `bbox` é convertido do formato nativo de coordenadas do modelo para pixels da imagem no pós-processamento.
 - Campo não legível ou ausente no documento é `null` (ou lista vazia em `filiacao`); o modelo não deve inferir valores.
-- *(Alterada em 2026-11-25, [ADR-017](../decisions/ADR-017-treino-br-doc-extraction.md))* Todas as chaves de `campos` são obrigatórias; para `outros`, todas são `null` (e `filiacao` é lista vazia).
+- *(Alterada em 2026-11-25, [ADR-017](../decisions/ADR-017-treino-br-doc-extraction.md))* Todas as chaves de `campos` são obrigatórias; para `outros`, todas são `null` (e `filiacao` é lista vazia). *(2026-11-27, [ADR-019](../decisions/ADR-019-treino-imagens-preparadas-invoice.md))* O mesmo vale para `invoice` (nota fiscal).
 
 ## Campos por tipo
 
@@ -64,7 +64,7 @@ Campos marcados com "—" são descartados na validação se vierem preenchidos 
 
 ## Confiança
 
-`confianca_tipo` é calculada a partir das probabilidades (*logprobs*) dos tokens do campo `tipo`, renormalizadas sobre as opções da lista fechada: a confiança de cada rótulo é o produto das probabilidades dos seus tokens, renormalizado entre `cnh`, `rg`, `cpf` e `outros`. Limiar inicial de rejeição: 0,5 ([RN-004](../domain/business-rules.md#rn-004)). Não é produzida pelo modelo como texto.
+`confianca_tipo` é calculada a partir das probabilidades (*logprobs*) dos tokens do campo `tipo`, renormalizadas sobre as opções da lista fechada: a confiança de cada rótulo é o produto das probabilidades dos seus tokens, renormalizado entre `cnh`, `rg`, `cpf`, `invoice` e `outros`. Limiar inicial de rejeição: 0,5 ([RN-004](../domain/business-rules.md#rn-004)). Não é produzida pelo modelo como texto.
 
 ## Exemplo
 

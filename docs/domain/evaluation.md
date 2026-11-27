@@ -4,17 +4,11 @@ Versão: 2.0 (2026-11-20).
 
 ## Conjuntos de dados
 
-### BID Dataset
-
-O Brazilian Identity Document Dataset contém imagens sintéticas e informações falsas. Inclui oito classes de frente e verso de CNH, CPF e RG, totalizando 28.800 imagens. É usado no ajuste do VLM e nas linhas de base.
-
-*(2026-11-26)* Fonte do treino da T038: cópia no Google Drive com as imagens JPEG em três subpastas (CNH, RG e CPF), divididas em 70-15-15 por classe, com treino só de classificação ([ADR-018](../decisions/ADR-018-treino-bid-subpastas.md)).
-
 ### br-doc-extraction
 
-*(2026-11-25)* Fonte inicial e única do treino da T038, carregada com `load_dataset("tech4humans/br-doc-extraction")`, com as partições do próprio dataset; decisões em [ADR-017](../decisions/ADR-017-treino-br-doc-extraction.md).
+Fonte exclusiva do treino T038: imagens preparadas em `/content/drive/MyDrive/visiondoc/cache/imagens/`, com classes lidas de `/content/drive/MyDrive/visiondoc/cache/MANIFESTO.JSONL` ([ADR-019](../decisions/ADR-019-treino-imagens-preparadas-invoice.md)). A divisão 70-15-15 é refeita sobre todas as imagens válidas; a partição original do manifesto é ignorada.
 
-O dataset `tech4humans/br-doc-extraction` contém imagem e resposta JSON de campos. Serve ao ajuste de extração e, pela sua própria partição de teste, à medição da meta de 90%; seus resultados são reportados separadamente e não substituem os do BID.
+O conjunto contém imagens e anotações associadas. Para T038, o alvo é apenas classificação das classes CNH, RG e INVOICE; a extração de campos não é avaliada nessa etapa.
 
 ### Dados sintéticos complementares
 
@@ -28,7 +22,7 @@ O dataset `tech4humans/br-doc-extraction` contém imagem e resposta JSON de camp
 1. Resultados em dados sintéticos não comprovam o desempenho em documentos reais; relatórios devem explicitar essa limitação.
 2. A classe `outros` evita que documentos não suportados sejam forçados para RG, CPF ou CNH.
 3. Treino, validação e teste são separados antes de composição ou aumento de dados.
-4. *(Definido em 2026-11-21)* Na fase de desenvolvimento e testes não são admitidos dados reais nem documentos de processos judiciais, nem para treinamento nem para teste ou avaliação. Treino, validação e teste usam apenas os dados sintéticos/fictícios do BID, do `br-doc-extraction` e das composições sintéticas.
+4. *(Definido em 2026-11-21; fonte T038 atualizada em 2026-11-27)* Na fase de desenvolvimento e testes não são admitidos dados reais nem documentos de processos judiciais. O treino, a validação e o teste da T038 usam exclusivamente as imagens preparadas de `br-doc-extraction` indicadas acima; os testes unitários usam dados sintéticos/fictícios.
 
 ## Métricas
 
@@ -45,7 +39,7 @@ O dataset `tech4humans/br-doc-extraction` contém imagem e resposta JSON de camp
 | Segurança da injeção | Taxa de sucesso com e sem mascaramento e validação |
 | Desempenho | Tempo por página, GPU e memória; metas reportadas, não eliminatórias: pipeline completo ≤ 30 s por página e memória de GPU ≤ 7,5 GB na GPU de 8 GB |
 
-O alvo mínimo é 90% de precisão em nível de caractere em conjunto aprovado, reportado por categoria e condição representativa. Esse limite não é garantia por documento. *(Definido em 2026-11-21)* A meta é medida sobre os **campos extraídos**: 1 − CER entre o valor extraído e o valor de referência, por tipo de documento, nas partições de teste do BID e do `br-doc-extraction`. A meta vale para **cada um dos dois datasets**, reportados separadamente.
+O alvo mínimo é 90% de precisão em nível de caractere em conjunto aprovado, reportado por categoria e condição representativa. Esse limite não é garantia por documento. *(Definido em 2026-11-21; conjunto atualizado em 2026-11-27)* Quando a extração for avaliada, a meta é medida sobre os **campos extraídos**: 1 − CER entre o valor extraído e o valor de referência, por tipo de documento, na partição de teste aprovada de `br-doc-extraction`.
 
 ## Análise de desempenho da classificação
 
@@ -53,8 +47,8 @@ A análise de desempenho do trabalho usa **acurácia**, **F1 macro** e **matriz 
 
 ### Granularidade
 
-- **Tipo:** classes de referência `cnh`, `rg`, `cpf` e `outros`.
-- **Tipo e face:** as oito classes BID (tipo × frente/verso) mais `outros`.
+- **Tipo:** classes disponíveis na avaliação aprovada. No conjunto da T038: `cnh`, `rg` e `invoice`.
+- **Tipo e face:** só reportar quando houver rótulos de face no conjunto de avaliação aprovado.
 - A classe prevista pode ser também `indefinido` (rejeição por confiança, [RN-004](business-rules.md#rn-004)); a referência nunca é `indefinido`.
 - *(Definido em 2026-11-21)* Acurácia, F1 macro e métricas por classe são calculadas **apenas sobre os documentos aceitos** (não `indefinido`), sempre acompanhadas da cobertura (proporção de aceitos). A matriz de confusão mantém a coluna `indefinido` para a análise de rejeição.
 - Em páginas com vários documentos, previsão e referência são pareadas por IoU ≥ 0,5; documento de referência não localizado conta como erro, e documento previsto sem par é registrado em coluna própria de espúrios.
@@ -72,13 +66,13 @@ A análise de desempenho do trabalho usa **acurácia**, **F1 macro** e **matriz 
 - A análise deve identificar:
   - os pares de classes mais confundidos e sua hipótese de causa (por exemplo, frente × verso do mesmo tipo, RG × CNH, documento de identidade × `outros`);
   - a proporção de rejeições (`indefinido`) por classe de referência;
-  - documentos fora do escopo classificados como `cnh`, `rg` ou `cpf` (confusões a partir de `outros`), mais graves por gerarem extração indevida.
+  - Documentos fora do escopo classificados como uma classe suportada, quando houver exemplos rotulados de `outros` no conjunto de avaliação.
 
 ### Recortes
 
 As três medidas são reportadas:
 
-- no agregado e por conjunto (partições de teste do BID e do `br-doc-extraction`);
+- no agregado e por partição de teste do conjunto de avaliação aprovado;
 - por condição representativa: orientação (horizontal, vertical, girada, espelhada), degradação (fotocópia, desfoque, compressão, ruído) e páginas com vários documentos;
 - com e sem a regra de rejeição, junto da curva cobertura × acurácia em função do limiar;
 - para cada experimento (linhas de base ConvNeXt-Tiny/BERTimbau, VLM *zero-shot* e Qwen3.5-4B com LoRA), com o mesmo particionamento, para permitir comparação direta.
@@ -116,7 +110,7 @@ O relatório contém apenas dados sintéticos e informações técnicas do ambie
 
 ### Dados
 
-- tamanho das partições de treino, validação e teste, por dataset (BID e `br-doc-extraction`) e no total;
+- tamanho das partições de treino, validação e teste das imagens aprovadas e no total;
 - distribuição por classe de tipo e de tipo e face em cada partição (tabela e gráfico de barras);
 - composições e aumentos aplicados e a semente do particionamento.
 
@@ -136,7 +130,7 @@ O relatório contém apenas dados sintéticos e informações técnicas do ambie
 
 ### Classificação
 
-Conforme a [análise de desempenho da classificação](#análise-de-desempenho-da-classificação), para tipo e para tipo e face, por dataset e no agregado:
+Conforme a [análise de desempenho da classificação](#análise-de-desempenho-da-classificação), para tipo e, quando aplicável, para tipo e face, por conjunto aprovado e no agregado:
 
 - acurácia e F1 macro com intervalo de confiança de 95% e cobertura;
 - precisão, revocação, F1 e suporte por classe;
@@ -146,7 +140,7 @@ Conforme a [análise de desempenho da classificação](#análise-de-desempenho-d
 
 ### Extração
 
-- 1 − CER dos campos extraídos por tipo e por dataset, frente à meta de 90% em cada dataset;
+- 1 − CER dos campos extraídos por tipo no conjunto de avaliação aprovado, frente à meta de 90%;
 - acerto exato e F1 por campo e taxa de campos sem respaldo (alucinação).
 
 ### Comparação

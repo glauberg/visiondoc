@@ -1,4 +1,5 @@
 import importlib.util
+import json
 
 import pytest
 
@@ -44,23 +45,42 @@ def test_aceita_python_312_e_313_e_recusa_outros():
     assert any("Python 3.14" in p for p in problemas)
 
 
-def test_verifica_subpastas_do_bid(tmp_path):
-    for pasta, n in (("CNH", 2), ("rg", 1), ("Cpf", 3)):
-        (tmp_path / pasta).mkdir()
-        for i in range(n):
-            (tmp_path / pasta / f"{i}.JPG").write_bytes(b"x")
-    assert colab.verificar_dataset(tmp_path) == ([], {"cnh": 2, "cpf": 3, "rg": 1})
-    (tmp_path / "Outros").mkdir()
-    problemas, _ = colab.verificar_dataset(tmp_path)
-    assert any("Outros" in p for p in problemas)
+def _manifesto(raiz, linhas):
+    (raiz / "imagens").mkdir(parents=True, exist_ok=True)
+    for linha in linhas:
+        if linha.get("imagem"):
+            (raiz / linha["imagem"]).write_bytes(b"x")
+    (raiz / "MANIFESTO.JSONL").write_text(
+        "".join(json.dumps(linha) + "\n" for linha in linhas), encoding="utf-8"
+    )
+
+
+def test_verifica_manifesto(tmp_path):
+    linhas = [
+        {"tipo": t, "imagem": f"imagens/{k}.png", "transcricao": "x", "erro": None}
+        for k, t in enumerate(["cnh", "cnh", "rg", "invoice", "outros"])
+    ]
+    _manifesto(tmp_path, linhas)
+    assert colab.verificar_dataset(tmp_path) == ([], [], {"cnh": 2, "rg": 1, "invoice": 2})
+    linhas[0]["erro"] = "formato_invalido"
+    linhas[1]["transcricao"] = ""
+    _manifesto(tmp_path, linhas)
+    problemas, avisos, contagem = colab.verificar_dataset(tmp_path)
+    assert problemas == [] and contagem["cnh"] == 1
+    assert any("descartadas" in a for a in avisos) and any("transcrição" in a for a in avisos)
+    _manifesto(tmp_path, [{"tipo": "rg", "imagem": "imagens/0.png", "erro": None}])
+    problemas, _, _ = colab.verificar_dataset(tmp_path)
+    assert any("CNH" in p for p in problemas) and any("INVOICE" in p for p in problemas)
     assert colab.verificar_dataset(tmp_path / "inexistente")[0]
 
 
 def test_padroes_no_drive_e_cache_por_amostra():
     a = colab.argumentos(["--etapa", "tudo", "--por-classe", "20"])
-    assert a.dados.as_posix() == "/content/drive/MyDrive/visiondoc/BID-Dataset"
+    assert a.dados.as_posix() == "/content/drive/MyDrive/visiondoc/cache"
     assert a.saidas.as_posix() == "/content/drive/MyDrive/visiondoc/logs"
-    assert colab.diretorio_cache(a, 42).name == "bid-s42-n20"
+    assert colab.diretorio_cache(a, 42).as_posix() == (
+        "/content/drive/MyDrive/visiondoc/treino/cache/br-doc-s42-n20"
+    )
     with pytest.raises(SystemExit):
         colab.argumentos(["--etapa", "inexistente"])
 

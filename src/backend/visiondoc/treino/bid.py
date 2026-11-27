@@ -23,10 +23,15 @@ PROPORCOES = {"train": 0.70, "valid": 0.15, "test": 0.15}
 
 
 @dataclass(frozen=True)
-class ArquivoBID:
+class ArquivoClasse:
+    """Imagem com sua classe; base da divisão 70-15-15 (também usada pelo ADR-019)."""
+
     caminho: Path
     relativo: str
     classe: str
+
+
+ArquivoBID = ArquivoClasse
 
 
 def listar_bid(raiz: str | Path) -> list[ArquivoBID]:
@@ -50,12 +55,12 @@ def _arredondar(valor: float) -> int:
     return math.floor(valor + 0.5)
 
 
-def dividir(
-    arquivos: list[ArquivoBID], semente: int, proporcoes: dict[str, float] = PROPORCOES
-) -> dict[str, list[ArquivoBID]]:
+def dividir[A: ArquivoClasse](
+    arquivos: list[A], semente: int, proporcoes: dict[str, float] = PROPORCOES
+) -> dict[str, list[A]]:
     """Divisão estratificada por classe; a última partição recebe o restante."""
     nomes = list(proporcoes)
-    divisao: dict[str, list[ArquivoBID]] = {nome: [] for nome in nomes}
+    divisao: dict[str, list[A]] = {nome: [] for nome in nomes}
     gerador = random.Random(semente)
     for classe in sorted({a.classe for a in arquivos}):
         da_classe = sorted((a for a in arquivos if a.classe == classe), key=lambda a: a.relativo)
@@ -72,7 +77,7 @@ def dividir(
     return divisao
 
 
-def amostrar(divisao: dict[str, list[ArquivoBID]], por_classe: int) -> dict[str, list[ArquivoBID]]:
+def amostrar[A: ArquivoClasse](divisao: dict[str, list[A]], por_classe: int) -> dict[str, list[A]]:
     """Primeiros N de cada classe em cada partição (a ordem já é aleatória)."""
     amostra = {}
     for particao, arquivos in divisao.items():
@@ -85,7 +90,7 @@ def amostrar(divisao: dict[str, list[ArquivoBID]], por_classe: int) -> dict[str,
     return amostra
 
 
-def gravar_particoes_csv(divisao: dict[str, list[ArquivoBID]], destino: str | Path) -> Path:
+def gravar_particoes_csv(divisao: dict[str, list[ArquivoClasse]], destino: str | Path) -> Path:
     destino = Path(destino)
     destino.mkdir(parents=True, exist_ok=True)
     caminho = destino / "particoes.csv"

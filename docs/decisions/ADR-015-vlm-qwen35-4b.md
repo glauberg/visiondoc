@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-11-21
-- **Alterado por:** [ADR-017](ADR-017-treino-br-doc-extraction.md) (dados do ajuste: só `br-doc-extraction` nesta fase)
+- **Fonte atual da T038:** exclusivamente imagens já preparadas de `br-doc-extraction`, conforme [ADR-019](ADR-019-treino-imagens-preparadas-invoice.md)
 - **Altera:** [ADR-010](ADR-010-vlm-qwen35-9b-lora.md) (modelo e configuração de hardware; o método de ajuste com LoRA e a forma de inferência permanecem)
 
 ## Contexto
@@ -15,7 +15,7 @@ Adotar o **Qwen3.5-4B** (Apache 2.0, multimodal) como modelo principal de locali
 
 - LoRA sobre o modelo de linguagem, com o codificador de visão congelado; rank 16, alpha 32 e dropout 0,05 como valores iniciais;
 - exemplos no formato do [contrato da saída do VLM](../contracts/saida-vlm.md);
-- dados de ajuste e avaliação restritos ao BID e ao `br-doc-extraction`: na fase de desenvolvimento e testes não são admitidos dados reais nem documentos de processos judiciais, o que substitui a linha "Dados" da configuração do ADR-010;
+- na fase de desenvolvimento e testes não são admitidos dados reais nem documentos de processos judiciais; a T038 usa exclusivamente as imagens preparadas de `br-doc-extraction` definidas na ADR-019;
 - inferência pelo `vLLM`, com decodificação estruturada, instrução de sistema fixa, temperatura 0 e confiança a partir dos logprobs.
 
 ### Inferência quantizada *(definida em 2026-11-21)*

@@ -1,6 +1,6 @@
 # ADR-010: Qwen3.5-9B ajustado com LoRA para classificação e extração
 
-- **Status:** Aceito, alterado por [ADR-015](ADR-015-vlm-qwen35-4b.md) (modelo passa a ser o Qwen3.5-4B por limite de hardware; dados de ajuste restritos a BID e `br-doc-extraction`)
+- **Status:** Aceito, alterado por [ADR-015](ADR-015-vlm-qwen35-4b.md) quanto ao modelo e por [ADR-019](ADR-019-treino-imagens-preparadas-invoice.md) quanto à fonte atual da T038
 - **Data:** 2026-11-20
 - **Substitui:** [ADR-002](ADR-002-ocr-bertimbau.md), [ADR-003](ADR-003-classificador-visual.md), [ADR-004](ADR-004-fusao-media-ponderada.md)
 
@@ -32,7 +32,7 @@ Adotar o **Qwen3.5-9B** (Alibaba, Apache 2.0, multimodal nativo), ajustado com *
 | Rank / alpha / dropout | 16 / 32 / 0,05 |
 | Módulos-alvo | Projeções de atenção e MLP do modelo de linguagem |
 | Formato dos exemplos | Imagem + transcrição delimitada → JSON conforme [`contratos/saida-vlm.md`](../contracts/saida-vlm.md) |
-| Dados | BID (rótulos de classe), `br-doc-extraction` (campos) |
+| Dados | T038: exclusivamente imagens preparadas de `br-doc-extraction`, conforme ADR-019 |
 
 ### Inferência
 

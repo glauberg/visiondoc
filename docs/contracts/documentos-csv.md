@@ -32,7 +32,7 @@ Conforme [RN-014](../domain/business-rules.md#rn-014), [RN-017](../domain/busine
 
 | # | Coluna | Tipo | Obrigatória | Domínio ou formato | Descrição |
 |---|---|---|---|---|---|
-| 8 | `tipo_documento` | texto | Sim* | `cnh`, `rg`, `cpf`, `outros`, `indefinido` | Tipo ([RN-003](../domain/business-rules.md#rn-003), [RN-004](../domain/business-rules.md#rn-004)) |
+| 8 | `tipo_documento` | texto | Sim* | `cnh`, `rg`, `cpf`, `invoice`, `outros`, `indefinido` | Tipo ([RN-003](../domain/business-rules.md#rn-003), [RN-004](../domain/business-rules.md#rn-004)) |
 | 9 | `face` | texto | Não | `frente`, `verso`, `ambas` | Face do documento |
 | 10 | `confianca_tipo` | decimal | Sim* | 0 a 1 | Confiança do VLM no tipo, a partir dos *logprobs* |
 

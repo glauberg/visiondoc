@@ -2,8 +2,8 @@
 
 - **Estado:** aprovada em 2026-11-21 (alinhada à versão 2.1 da documentação)
 - **Responsáveis:** Bruno Silva (aprovação)
-- **Última atualização:** 2026-11-21
-- **Base:** [requisitos do domínio 2.0](../../docs/domain/requirements.md), [regras de negócio](../../docs/domain/business-rules.md), [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md) a [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md) e contratos em [`docs/contracts/`](../../docs/contracts/)
+- **Última atualização:** 2026-11-27
+- **Base:** [requisitos do domínio 2.0](../../docs/domain/requirements.md), [regras de negócio](../../docs/domain/business-rules.md), [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md) a [ADR-019](../../docs/decisions/ADR-019-treino-imagens-preparadas-invoice.md) e contratos em [`docs/contracts/`](../../docs/contracts/)
 
 ## Contexto e problema
 
@@ -32,12 +32,12 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 ## Objetivos
 
 - Receber e preparar com segurança PDF/JPEG estritamente menores que 2.000.000 bytes, em `pt-BR`, em qualquer orientação.
-- Classificar cada documento identificado na página em `cnh`, `rg`, `cpf`, `outros` ou `indefinido`, com face e `bbox`.
+- Classificar cada documento identificado na página em `cnh`, `rg`, `cpf`, `invoice`, `outros` ou `indefinido`, com face e `bbox`.
 - Extrair os campos pertinentes a CNH, RG e CPF sem inventar valores ausentes ou ambíguos.
 - Validar a saída do VLM contra a transcrição independente antes da gravação.
 - Sinalizar conteúdo suspeito em `alertas.csv` e no CSV principal sem bloquear o processamento.
 - Operar todos os modelos em infraestrutura própria da instituição.
-- Medir as métricas definidas em [dados e avaliação](../../docs/domain/evaluation.md), com alvo mínimo de 90% de precisão em nível de caractere nos campos extraídos, em cada um dos dois datasets (BID e `br-doc-extraction`).
+- Medir as métricas definidas em [dados e avaliação](../../docs/domain/evaluation.md), com alvo mínimo de 90% de precisão em nível de caractere nos campos extraídos, no conjunto de avaliação aprovado de `br-doc-extraction`.
 
 ## Fora de escopo
 
@@ -54,7 +54,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 ## Requisitos funcionais
 
 - **RF-SDD-01 — Entrada:** aceitar PDF e JPEG reais (formato verificado além da extensão) com tamanho estritamente menor que 2.000.000 bytes; demais arquivos geram linha com `situacao = erro` ([RF-01](../../docs/domain/requirements.md), [RN-001](../../docs/domain/business-rules.md#rn-001)).
-- **RF-SDD-02 — Identificação:** associar cada arquivo à numeração única do CNJ ou, para arquivos carregados dos datasets BID e `tech4humans/br-doc-extraction`, ao identificador sintético `<dataset>:<arquivo>`, e registrar nome, SHA-256 do arquivo original e data/hora ([RN-001](../../docs/domain/business-rules.md#rn-001), [RN-002](../../docs/domain/business-rules.md#rn-002)).
+- **RF-SDD-02 — Identificação:** associar cada arquivo à numeração única do CNJ ou, para arquivos carregados da fonte de treinamento `tech4humans/br-doc-extraction`, ao identificador sintético `<dataset>:<arquivo>`, e registrar nome, SHA-256 do arquivo original e data/hora ([RN-001](../../docs/domain/business-rules.md#rn-001), [RN-002](../../docs/domain/business-rules.md#rn-002)).
 - **RF-SDD-03 — Saneamento:** em PDF, inventariar e remover conteúdo ativo sem executá-lo, preservar o texto nativo separadamente e rasterizar as páginas; em JPEG, decodificar em ambiente isolado, tratar metadados como não confiáveis e converter em PDF de uma página, sem reamostragem, que segue o fluxo do PDF; `arquivo` e `hash_arquivo` referem-se ao original ([ADR-001](../../docs/decisions/ADR-001-entrada-pdf-nao-confiavel.md), [pdf-ingestion](../../docs/security/pdf-ingestion.md)).
 - **RF-SDD-04 — Pré-processamento:** corrigir orientação horizontal/vertical, inclinação, rotação (inclusive 180°) e espelhamento, mantendo a relação entre coordenadas normalizadas e de origem ([RF-02](../../docs/domain/requirements.md)).
 - **RF-SDD-05 — Transcrição:** produzir, com PaddleOCR-VL, o inteiro teor em ordem de leitura e as caixas de texto de cada página ([ADR-011](../../docs/decisions/ADR-011-transcricao-paddleocr-vl.md)).
@@ -69,7 +69,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - **RF-SDD-14 — Segurança do CSV:** normalizar NFC, remover caracteres de controle e `Cf` (exceto quebras de linha do inteiro teor), neutralizar fórmulas e truncar evidências em 500 caracteres ([RN-014](../../docs/domain/business-rules.md#rn-014), [RN-015](../../docs/domain/business-rules.md#rn-015), [RN-017](../../docs/domain/business-rules.md#rn-017)).
 - **RF-SDD-15 — Versão:** toda linha registra `versao_pipeline`, `modelo_vlm`, `modelo_transcricao` e `data_processamento` ([RN-019](../../docs/domain/business-rules.md#rn-019)).
 - **RF-SDD-16 — Revisão amostral:** permitir seleção aleatória de documentos para conferência humana e registrar conferências e correções de forma rastreável, sem pré-condição por documento nem coluna obrigatória no CSV ([RF-07](../../docs/domain/requirements.md)). **Fora do primeiro incremento:** adiado para especificação futura (Q-17).
-- **RF-SDD-17 — Ajuste LoRA:** treinar o adaptador do Qwen3.5-4B com QLoRA 4 bits conforme [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md), [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md) e [ADR-018](../../docs/decisions/ADR-018-treino-bid-subpastas.md): nesta fase, com o BID no Google Drive (`/content/drive/MyDrive/visiondoc/BID-Dataset`), cujas subpastas CNH, RG e CPF são as classes; divisão 70-15-15 estratificada por classe, com semente fixa e gravada em `particoes.csv`; treino só de classificação, sem a classe `outros`; entrada igual à da inferência e rastreamento em MLflow; o modelo *zero-shot* é avaliado como linha de base. Logs, gráficos, JSON e CSV são gravados em `/content/drive/MyDrive/visiondoc/logs`. Execução pelo script `infrastructure/colab/t038_colab.py`, que verifica as condições (Python, GPU com bfloat16, disco, Google Drive e dataset) antes de instalar, preparar e treinar.
+- **RF-SDD-17 — Ajuste LoRA:** treinar o adaptador do Qwen3.5-4B com QLoRA 4 bits conforme [ADR-010](../../docs/decisions/ADR-010-vlm-qwen35-9b-lora.md), [ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md) e [ADR-019](../../docs/decisions/ADR-019-treino-imagens-preparadas-invoice.md): usar exclusivamente as imagens já preparadas em `/content/drive/MyDrive/visiondoc/cache/imagens/`, com suas classes lidas de `/content/drive/MyDrive/visiondoc/cache/MANIFESTO.JSONL` (CNH, RG e INVOICE); dividir todas as imagens válidas em 70-15-15, estratificado por classe, ignorando a partição original do manifesto e gravando a nova divisão em `particoes.csv`; treinar só classificação; manter entrada igual à da inferência (exceto a transcrição, usada como está no manifesto) e rastreamento em MLflow; avaliar o modelo *zero-shot* como linha de base. Logs, gráficos, JSON e CSV são gravados em `/content/drive/MyDrive/visiondoc/logs`. O script `infrastructure/colab/t038_colab.py` verifica as condições (Python, GPU com bfloat16, disco, Google Drive e manifesto) antes de instalar, preparar e treinar.
 - **RF-SDD-18 — Relatório de treinamento:** ao fim de cada treinamento concluído, e de cada avaliação da linha de base, gerar automaticamente um relatório em Markdown com gráficos PNG e um `metricas.json`, contendo identificação da execução, ambiente (GPU e versões), características do modelo (parâmetros totais e treináveis, quantização, LoRA), tamanho e distribuição das partições de treino, validação e teste, curvas e tempos de treino, tempo de carga, tempo médio de inferência e memória, acurácia, F1 macro e matrizes de confusão, métricas de extração e comparação com a linha de base, conforme [relatório por treinamento](../../docs/domain/evaluation.md#relatório-por-treinamento).
 
 ## Requisitos não funcionais
@@ -90,7 +90,7 @@ A detecção não interrompe nem desvia o documento. Os resultados são apoio à
 - **Dados tratados e finalidade:** documentos de identificação, imagens, transcrições, campos extraídos, hashes, nomes de arquivo e numeração CNJ, para apoio à triagem processual. Todos são dados pessoais e potencialmente sensíveis.
 - **Sensibilidade e minimização:** o CSV principal concentra dados pessoais e o inteiro teor; `alertas.csv` contém apenas trecho truncado e escapado. Na etapa `validacao`, a evidência traz valor proposto pelo VLM, que pode ser dado inventado e não deve ser usado como dado do titular.
 - **Retenção e descarte:** arquivos intermediários são apagados ao final do lote ([ING-SEC-11](../../docs/security/pdf-ingestion.md)); retenção de originais, CSVs e conjuntos de avaliação fica para eventual uso operacional futuro (Q-25); a fase de desenvolvimento e testes não admite dados reais.
-- **Compartilhamento/serviços externos:** proibidos para documentos e derivados. Desenvolvimento, treinamento e testes usam apenas dados sintéticos ou fictícios (BID, `br-doc-extraction`, composições sintéticas); dados reais e documentos de processos judiciais não são admitidos nesta fase.
+- **Compartilhamento/serviços externos:** proibidos para documentos e derivados. O treino T038 usa exclusivamente as imagens preparadas de `br-doc-extraction` em `/content/drive/MyDrive/visiondoc/cache/imagens/`, com as classes do manifesto correspondente; testes unitários usam dados sintéticos ou fictícios. Dados reais e documentos de processos judiciais não são admitidos nesta fase.
 
 ## Segurança e abuso
 
@@ -182,7 +182,7 @@ Questões levantadas em 2026-11-21 e respondidas na mesma data. As resolvidas in
 
 ### Lacunas que bloqueiam a implementação
 
-- **Q-07 — Resolvida (2026-11-21):** os arquivos são carregados dos datasets BID e `tech4humans/br-doc-extraction`; `id_processo` recebe o identificador sintético `<dataset>:<arquivo>` quando não houver numeração CNJ ([RN-001](../../docs/domain/business-rules.md#rn-001)); um lote é uma execução sobre um conjunto ou partição do dataset.
+- **Q-07 — Resolvida (2026-11-27):** os arquivos do treino T038 são carregados exclusivamente das imagens preparadas de `tech4humans/br-doc-extraction` em `/content/drive/MyDrive/visiondoc/cache/imagens/`, com classes do `MANIFESTO.JSONL`; `id_processo` recebe o identificador sintético `<dataset>:<arquivo>` quando não houver numeração CNJ ([RN-001](../../docs/domain/business-rules.md#rn-001)); um lote é uma execução sobre um conjunto ou partição dos dados.
 - **Q-08 — Resolvida (2026-11-21):** frente e verso do mesmo tipo em páginas consecutivas formam uma linha com `face = ambas`; campo divergente entre as faces é esvaziado e gera `dado_inconsistente`; `bbox` da frente; `confianca_tipo` é a menor das duas; página sem documento de identificação gera linha `outros` ([RN-029](../../docs/domain/business-rules.md#rn-029)).
 - **Q-09 — Resolvida (2026-11-21):** `inteiro_teor` contém as linhas cujas caixas estão majoritariamente dentro do `bbox`; na junção, concatena frente e verso ([RN-016](../../docs/domain/business-rules.md#rn-016)).
 - **Q-10 — Resolvida (2026-11-21):** nova coluna `motivo_erro` com domínio fechado; arquivo inválido gera uma linha com páginas vazias ([RN-018](../../docs/domain/business-rules.md#rn-018)); falha de detector gera ocorrência `falha_deteccao` e o documento segue processado. Severidade de `falha_deteccao` incluída em Q-21.
@@ -205,8 +205,8 @@ Questões levantadas em 2026-11-21 e respondidas na mesma data. As resolvidas in
 ### Necessárias antes do uso operacional
 
 - **Q-23 — Parcialmente resolvida (2026-11-21):** GPU disponível de 8 GB; Qwen3.5-4B com QLoRA 4 bits no ajuste e pesos em 8 bits (FP8 ou INT8) na inferência; o `vLLM` adotado deve suportar Qwen3.5, entrada multimodal e LoRA sobre modelo quantizado em 8 bits, confirmado por prova de conceito antes da implementação ([ADR-015](../../docs/decisions/ADR-015-vlm-qwen35-4b.md)). Metas de desempenho definidas em 2026-11-25 (RNF-SDD-09). Pendente: prova de conceito na GPU de 8 GB.
-- **Q-24 — Resolvida (2026-11-21):** a meta de 90% é 1 − CER dos campos extraídos frente à referência, por tipo, nas partições de teste do BID e do `br-doc-extraction`, valendo para cada um dos dois datasets separadamente ([dados e avaliação](../../docs/domain/evaluation.md)).
-- **Q-25 — Parcialmente resolvida (2026-11-21):** a fase de desenvolvimento e testes não admite dados reais nem documentos de processos judiciais; usa apenas BID e `br-doc-extraction`. Pendentes, para eventual uso operacional futuro: controlador, base legal, retenção, descarte e acesso ([governança de dados](../../docs/privacy/data-governance.md)).
+- **Q-24 — Resolvida (2026-11-27):** a meta de 90% é 1 − CER dos campos extraídos frente à referência, por tipo, na partição de teste do conjunto aprovado de `br-doc-extraction` ([dados e avaliação](../../docs/domain/evaluation.md)).
+- **Q-25 — Parcialmente resolvida (2026-11-21; fonte da T038 atualizada em 2026-11-27):** a fase de desenvolvimento e testes não admite dados reais nem documentos de processos judiciais; para a T038, usa exclusivamente as imagens preparadas em `/content/drive/MyDrive/visiondoc/cache/imagens/`, classificadas pelo manifesto em `/content/drive/MyDrive/visiondoc/cache/MANIFESTO.JSONL`. Pendentes, para eventual uso operacional futuro: controlador, base legal, retenção, descarte e acesso ([governança de dados](../../docs/privacy/data-governance.md)).
 - **Q-26 — Adiada (2026-11-21):** revisão amostral fora do primeiro incremento (Q-17); responsáveis, taxa, papéis e persistência das correções serão tratados na especificação futura.
 - **Q-27 — Resolvida (2026-11-21):** acurácia, F1 macro e métricas por classe só sobre documentos aceitos, com a cobertura ao lado; matriz com coluna `indefinido` para análise de rejeição; pareamento por IoU ≥ 0,5 (não localizado = erro; espúrios em coluna própria); IC 95% por *bootstrap* com 1.000 reamostragens; sem metas mínimas ([dados e avaliação](../../docs/domain/evaluation.md#análise-de-desempenho-da-classificação)).
 

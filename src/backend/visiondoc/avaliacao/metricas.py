@@ -17,7 +17,7 @@ from visiondoc.modelos import Caixa
 
 INDEFINIDO = "indefinido"
 NAO_LOCALIZADO = "nao_localizado"
-CLASSES_TIPO = ["cnh", "rg", "cpf", "outros"]
+CLASSES_TIPO = ["cnh", "rg", "cpf", "invoice", "outros"]
 CLASSES_TIPO_FACE = [
     "cnh_ambas",
     "cnh_frente",
@@ -27,6 +27,7 @@ CLASSES_TIPO_FACE = [
     "rg_ambas",
     "rg_frente",
     "rg_verso",
+    "invoice",
     "outros",
 ]
 

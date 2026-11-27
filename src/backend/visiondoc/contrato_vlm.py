@@ -28,7 +28,7 @@ class Campos(BaseModel):
 class Documento(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    tipo: Literal["cnh", "rg", "cpf", "outros"]
+    tipo: Literal["cnh", "rg", "cpf", "invoice", "outros"]
     face: Literal["frente", "verso", "ambas"] | None
     bbox: list[int] = Field(min_length=4, max_length=4)
     campos: Campos

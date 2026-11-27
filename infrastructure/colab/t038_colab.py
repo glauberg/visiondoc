@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Execução da T038 (treino do adaptador LoRA) no ambiente Python do Google Colab.
 
-Dataset: BID no Google Drive, com as imagens JPEG nas subpastas CNH, RG e CPF,
-que são as classes. A divisão é 70-15-15, estratificada por classe e com a
-semente de config/treino.yaml (ADR-018). Treino só de classificação.
+Dataset: imagens já preparadas do `tech4humans/br-doc-extraction` no Google Drive
+(`cache/MANIFESTO.JSONL` e `cache/imagens/`), com as classes CNH, RG e INVOICE
+indicadas no manifesto (ADR-019). A divisão é 70-15-15, estratificada por classe
+e com a semente de config/treino.yaml, sobre todas as imagens válidas (a
+partição original do manifesto é ignorada). Treino só de classificação. As
+imagens já passaram pela preparação; o PaddleOCR não é usado nem instalado.
 
 Uso, em células do Colab:
 
@@ -13,15 +16,15 @@ Uso, em células do Colab:
     !python /content/visiondoc/infrastructure/colab/t038_colab.py --etapa tudo --por-classe 20
 
 Etapas (`--etapa`):
-  verificar  Python, GPU com bfloat16, espaço em disco, Google Drive e o dataset
-  instalar   instala o pacote com o extra `treino` e o PaddleOCR
-  preparar   divide o BID em 70-15-15, grava particoes.csv e prepara os exemplos
+  verificar  Python, GPU com bfloat16, espaço em disco, Google Drive e o manifesto
+  instalar   instala o pacote com o extra `treino`
+  preparar   divide as imagens em 70-15-15, grava particoes.csv e o cache de treino
   treinar    linha de base zero-shot, treino QLoRA e relatórios (RF-SDD-18)
-  tudo       todas as anteriores; preparar e treinar rodam em processos separados,
-             o que libera a memória de GPU do Paddle sem reiniciar o ambiente
+  tudo       todas as anteriores; preparar e treinar rodam em processos separados
 
 Saídas (logs, gráficos, JSON e CSV): /content/drive/MyDrive/visiondoc/logs.
-Cache dos exemplos e adaptador treinado: /content/drive/MyDrive/visiondoc.
+Cache de treino (só o manifesto; as imagens ficam na fonte) e adaptador treinado:
+/content/drive/MyDrive/visiondoc/treino.
 """
 
 import argparse
@@ -37,15 +40,14 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[2]
 DRIVE = Path("/content/drive/MyDrive")
 BASE_DRIVE = DRIVE / "visiondoc"
-DADOS_PADRAO = BASE_DRIVE / "BID-Dataset"
+DADOS_PADRAO = BASE_DRIVE / "cache"
 SAIDAS_PADRAO = BASE_DRIVE / "logs"
 ETAPAS = ("verificar", "instalar", "preparar", "treinar", "tudo")
-CLASSES = ("cnh", "rg", "cpf")
-EXTENSOES = (".jpg", ".jpeg")
+CLASSES = ("cnh", "rg", "invoice")
+TIPOS_MANIFESTO = {"cnh": "cnh", "rg": "rg", "invoice": "invoice", "outros": "invoice"}
 PYTHON_ACEITO = ((3, 12), (3, 13))  # requires-python do pyproject.toml
 CC_MINIMA = 8.0  # bfloat16 (L4, A100); a T4 (7.5) não atende
-ESPACO_MINIMO_GB = 30.0  # pesos do modelo, cache de exemplos, adaptador e checkpoints
-INDICE_PADDLE = "https://www.paddlepaddle.org.cn/packages/stable/cu126/"
+ESPACO_MINIMO_GB = 30.0  # pesos do modelo, adaptador e checkpoints
 
 _log: Path | None = None
 
@@ -65,11 +67,11 @@ def argumentos(argv: list[str] | None = None) -> argparse.Namespace:
         "--dados",
         type=Path,
         default=DADOS_PADRAO,
-        help="raiz do BID, com as subpastas CNH, RG e CPF",
+        help="diretório com MANIFESTO.JSONL e a subpasta imagens/",
     )
     p.add_argument("--saidas", type=Path, default=SAIDAS_PADRAO, help="logs, gráficos, JSON e CSV")
     p.add_argument(
-        "--base", type=Path, default=BASE_DRIVE, help="cache dos exemplos e adaptador treinado"
+        "--base", type=Path, default=BASE_DRIVE / "treino", help="cache de treino e adaptador"
     )
     p.add_argument(
         "--por-classe",
@@ -94,11 +96,6 @@ def argumentos(argv: list[str] | None = None) -> argparse.Namespace:
         dest="zero_shot",
         action="store_false",
         help="não avalia a linha de base zero-shot",
-    )
-    p.add_argument(
-        "--indice-paddle",
-        default=INDICE_PADDLE,
-        help="índice do paddlepaddle-gpu compatível com o CUDA do ambiente",
     )
     p.add_argument(
         "--ignorar-condicoes",
@@ -172,23 +169,51 @@ def avaliar_condicoes(
     return problemas, avisos
 
 
-def verificar_dataset(raiz: Path) -> tuple[list[str], dict[str, int]]:
-    """Confere as subpastas CNH, RG e CPF e conta as imagens JPEG de cada uma."""
-    if not raiz.is_dir():
-        return [f"Dataset não encontrado em {raiz}."], {}
-    problemas, contagem = [], {}
-    for pasta in sorted(p for p in raiz.iterdir() if p.is_dir() and not p.name.startswith(".")):
-        classe = pasta.name.lower()
-        if classe not in CLASSES:
-            problemas.append(f"Subpasta não reconhecida: {pasta.name}; esperadas CNH, RG e CPF.")
-            continue
-        contagem[classe] = sum(
-            1 for f in pasta.rglob("*") if f.is_file() and f.suffix.lower() in EXTENSOES
+def verificar_dataset(raiz: Path) -> tuple[list[str], list[str], dict[str, int]]:
+    """Confere o MANIFESTO.JSONL, conta as imagens válidas por classe e as transcrições vazias."""
+    manifesto = None
+    if raiz.is_dir():
+        manifesto = next(
+            (
+                f
+                for f in sorted(raiz.iterdir())
+                if f.is_file() and f.name.lower() == "manifesto.jsonl"
+            ),
+            None,
         )
+    if manifesto is None:
+        return [f"MANIFESTO.JSONL não encontrado em {raiz}."], [], {}
+    problemas, avisos = [], []
+    contagem: dict[str, int] = {}
+    descartes = sem_transcricao = 0
+    for numero, bruta in enumerate(manifesto.read_text(encoding="utf-8").splitlines(), start=1):
+        if not bruta.strip():
+            continue
+        try:
+            linha = json.loads(bruta)
+        except json.JSONDecodeError:
+            problemas.append(f"Linha {numero} do manifesto não é JSON válido.")
+            continue
+        classe = TIPOS_MANIFESTO.get(str(linha.get("tipo", "")).lower())
+        if classe is None:
+            problemas.append(f"Linha {numero}: tipo não suportado: {linha.get('tipo')!r}.")
+            continue
+        if linha.get("erro") is not None or not (raiz / str(linha.get("imagem") or "")).is_file():
+            descartes += 1
+            continue
+        contagem[classe] = contagem.get(classe, 0) + 1
+        sem_transcricao += not linha.get("transcricao")
     for classe in CLASSES:
         if not contagem.get(classe):
-            problemas.append(f"Classe {classe.upper()} sem imagens JPEG em {raiz}.")
-    return problemas, contagem
+            problemas.append(f"Classe {classe.upper()} sem imagens válidas no manifesto.")
+    if descartes:
+        avisos.append(f"{descartes} linha(s) com erro ou sem imagem serão descartadas.")
+    if sem_transcricao:
+        avisos.append(
+            f"{sem_transcricao} imagem(ns) sem transcrição: o modelo treina com a transcrição "
+            "vazia, diferente da inferência, que recebe a transcrição do PaddleOCR-VL."
+        )
+    return problemas, avisos, contagem
 
 
 def drive_montado() -> bool:
@@ -198,7 +223,7 @@ def drive_montado() -> bool:
 def diretorio_cache(args: argparse.Namespace, semente: int) -> Path:
     """Um cache por divisão e amostra, para não misturar exemplos de execuções diferentes."""
     amostra = f"n{args.por_classe}" if args.por_classe else "todos"
-    return args.base / "cache" / f"bid-s{semente}-{amostra}"
+    return args.base / "cache" / f"br-doc-s{semente}-{amostra}"
 
 
 def _semente() -> int:
@@ -232,9 +257,9 @@ def verificar(args: argparse.Namespace) -> int:
     registrar(f"Python {sys.version.split()[0]}; GPU: {gpu or 'nenhuma'}")
     registrar(f"Espaço livre: {livre:.0f} GB; Drive montado: {drive_montado()}")
     problemas, avisos = avaliar_condicoes(gpu, livre, drive_montado())
-    problemas_dados, contagem = verificar_dataset(args.dados)
+    problemas_dados, avisos_dados, contagem = verificar_dataset(args.dados)
     registrar(f"Dataset {args.dados}: {contagem or 'sem imagens'}")
-    for aviso in avisos:
+    for aviso in avisos + avisos_dados:
         registrar(f"AVISO: {aviso}")
     for problema in problemas + problemas_dados:
         registrar(f"PROBLEMA: {problema}")
@@ -245,40 +270,24 @@ def verificar(args: argparse.Namespace) -> int:
 
 
 def instalar(args: argparse.Namespace) -> int:
-    pip = [sys.executable, "-m", "pip", "install", "-q"]
-    for comando in (
-        [*pip, "-e", f"{RAIZ}[treino]"],
-        [*pip, "paddlepaddle-gpu", "-i", args.indice_paddle],
-        [*pip, "paddleocr[doc-parser]"],
-    ):
-        if _executar(comando) != 0:
-            registrar("Falha na instalação; confira a versão do paddlepaddle-gpu para o CUDA.")
-            return 3
+    if _executar([sys.executable, "-m", "pip", "install", "-q", "-e", f"{RAIZ}[treino]"]) != 0:
+        registrar("Falha na instalação do pacote com o extra treino.")
+        return 3
     return 0
 
 
 def preparar(args: argparse.Namespace) -> int:
     from collections import Counter
 
-    from visiondoc.configuracao import carregar_configuracao
-    from visiondoc.deteccao import Detectores
-    from visiondoc.transcricao import (
-        AvaliadorPorTranscricao,
-        ClassificadorOrientacaoPaddle,
-        TranscritorPaddleOCRVL,
-        TranscritorPPOCR,
-    )
-    from visiondoc.treino.bid import (
-        amostrar,
-        dividir,
-        exemplos_bid,
-        gravar_particoes_csv,
-        listar_bid,
-    )
-    from visiondoc.treino.preparacao import preparar as preparar_exemplos
+    from visiondoc.treino.bid import amostrar, dividir, gravar_particoes_csv
+    from visiondoc.treino.manifesto import listar_manifesto, montar_cache
 
     semente = _semente()
-    divisao = dividir(listar_bid(args.dados), semente)
+    imagens, descartes = listar_manifesto(args.dados)
+    registrar(f"Imagens válidas: {dict(Counter(i.classe for i in imagens))}")
+    if descartes:
+        registrar(f"Descartadas: {dict(descartes)}")
+    divisao = dividir(imagens, semente)
     registrar(f"Divisão 70-15-15 (semente {semente}): { {p: len(v) for p, v in divisao.items()} }")
     registrar(f"Partições gravadas em {gravar_particoes_csv(divisao, args.saidas)}")
     if args.por_classe:
@@ -286,21 +295,9 @@ def preparar(args: argparse.Namespace) -> int:
         registrar(
             f"Amostra de {args.por_classe} por classe: { {p: len(v) for p, v in divisao.items()} }"
         )
-    itens = preparar_exemplos(
-        exemplos_bid(divisao),
-        diretorio_cache(args, semente),
-        carregar_configuracao(RAIZ / "config" / "pipeline.yaml"),
-        transcritor=TranscritorPaddleOCRVL(),
-        avaliador=AvaliadorPorTranscricao(TranscritorPPOCR()),
-        classificador=ClassificadorOrientacaoPaddle(),
-        detectores=Detectores(None, None),  # regras e regex ativas; sem llm-guard e ClamAV
-        regras_yara=RAIZ / "config" / "yara" / "pdf_conteudo_ativo.yar",
-        dataset="bid",
-    )
-    registrar(f"Preparação: {dict(Counter((i.particao, i.erro or 'ok') for i in itens))}")
-    if not any(i.erro is None for i in itens):
-        registrar("Nenhum exemplo válido preparado.")
-        return 4
+    destino = diretorio_cache(args, semente)
+    itens = montar_cache(divisao, destino)
+    registrar(f"Cache de treino: {len(itens)} itens em {destino}")
     return 0
 
 
@@ -344,8 +341,6 @@ def opcoes_da_subetapa(args: argparse.Namespace, etapa: str) -> list[str]:
         str(args.saidas),
         "--base",
         str(args.base),
-        "--indice-paddle",
-        args.indice_paddle,
     ]
     for nome, valor in (
         ("--por-classe", args.por_classe),
@@ -366,7 +361,7 @@ def tudo(args: argparse.Namespace) -> int:
         codigo = etapa(args)
         if codigo:
             return codigo
-    for etapa in ("preparar", "treinar"):  # processos separados liberam a GPU entre as etapas
+    for etapa in ("preparar", "treinar"):  # processos separados, cada um com seu log
         codigo = _executar([sys.executable, __file__, *opcoes_da_subetapa(args, etapa)])
         if codigo:
             registrar(f"Etapa {etapa} terminou com código {codigo}.")

@@ -13,7 +13,7 @@ Os resultados são apoio à triagem e não decidem mérito, autenticidade ou val
 - **RF-01 — Entrada:** aceitar PDF/JPEG reais estritamente menores que 2.000.000 bytes.
 - **RF-02 — Orientação:** processar documentos em português do Brasil em orientações horizontal, vertical, inclinada, girada, invertida ou espelhada.
 - **RF-03 — Transcrição:** produzir inteiro teor em ordem de leitura e caixas com PaddleOCR-VL.
-- **RF-04 — Classificação:** produzir `cnh`, `rg`, `cpf`, `outros` ou `indefinido`.
+- **RF-04 — Classificação:** produzir `cnh`, `rg`, `cpf`, `invoice`, `outros` ou `indefinido`.
 - **RF-05 — Extração:** extrair campos pertinentes a CNH, RG e CPF. Ausência ou ambiguidade não pode ser inferida.
 - **RF-06 — Localização:** produzir `bbox` para cada documento identificado pelo VLM.
 - **RF-07 — Revisão:** disponibilizar revisão humana amostral sem pré-condição por documento.

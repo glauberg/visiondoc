@@ -2,7 +2,7 @@
 
 - **Especificação:** [`spec.md`](spec.md)
 - **Estado:** aprovado em 2026-11-21 por Bruno Silva. Questões abertas que não impedem a aprovação: Q-23 (prova de conceito do `vLLM` em 8 bits na GPU de 8 GB) e Q-25 (governança de dados para uso operacional futuro)
-- **Última atualização:** 2026-11-21
+- **Última atualização:** 2026-11-27
 
 ## Abordagem
 
@@ -16,7 +16,7 @@ Implementar o pipeline em Python 3.12 ou 3.13 como uma sequência de etapas com 
 6. **Validação:** esquema, confiança (limiar inicial 0,5), pertinência, respaldo com normalização canônica, consistência de CPF e datas, e junção de frente e verso.
 7. **Saída:** `documentos_<id_lote>.csv` e `alertas_AAAA-MM-DD.csv` higienizados, com retenção em memória, regravação de alertas ao fim do lote e arquivo de contingência.
 
-Em paralelo ao pipeline, o treino do adaptador com QLoRA 4 bits (BID + `br-doc-extraction`, rastreado em MLflow) e um módulo de avaliação separado.
+Em paralelo ao pipeline, o treino do adaptador com QLoRA 4 bits usa exclusivamente as imagens já preparadas em `/content/drive/MyDrive/visiondoc/cache/imagens/`, com as classes identificadas por `/content/drive/MyDrive/visiondoc/cache/MANIFESTO.JSONL`; a execução é rastreada em MLflow. Um módulo de avaliação permanece separado.
 
 Cada etapa recebe e devolve objetos tipados (`pydantic`); nenhuma etapa interpreta conteúdo documental como instrução. Falha em um documento produz linha de erro com `motivo_erro` sem interromper o lote. Detecção nunca bloqueia ([P3](../../.specify/memory/constitution.md)).
 
@@ -34,7 +34,7 @@ Seguindo [P8](../../.specify/memory/constitution.md), o primeiro incremento é u
 
 | Fronteira | Contrato |
 |---|---|
-| Entrada do lote | Arquivos dos datasets BID e `br-doc-extraction`; `id_processo` = `<dataset>:<arquivo>` ([RN-001](../../docs/domain/business-rules.md#rn-001)); limites de [pdf-ingestion](../../docs/security/pdf-ingestion.md) |
+| Entrada do lote | Arquivos PDF/JPEG; para o treino T038, somente as imagens preparadas em `/content/drive/MyDrive/visiondoc/cache/imagens/`, com classes do manifesto em `/content/drive/MyDrive/visiondoc/cache/MANIFESTO.JSONL`; limites de [pdf-ingestion](../../docs/security/pdf-ingestion.md) |
 | Ingestão → pré-processamento | Páginas rasterizadas a 300 DPI, texto nativo separado, inventário de conteúdo ativo, identificação (nome, SHA-256, data/hora ISO 8601 com fuso local) |
 | Pré-processamento → transcrição | Imagem colorida normalizada + transformação de coordenadas |
 | Transcrição → detecção | Inteiro teor em ordem de leitura + caixas por página |
@@ -52,11 +52,11 @@ Nenhum detalhe de contrato não decidido deve ser presumido na implementação; 
 - **Dependências externas:** apenas bibliotecas e pesos de modelos com licença verificada na versão adotada (llm-guard e seu modelo, Qwen3.5-4B, PaddleOCR-VL); Prompt Guard 2 só em experimento, após verificação de licença.
 - **Logs:** sem conteúdo documental; somente identificadores, etapas, durações e códigos de erro.
 - **Intermediários:** apagados ao final do lote, inclusive em falha ([ING-SEC-11](../../docs/security/pdf-ingestion.md)).
-- **Dados:** apenas dados sintéticos/fictícios públicos (BID e `br-doc-extraction`); dados reais e documentos de processos judiciais não são admitidos para treinamento nem testes nesta fase.
+- **Dados:** para o treino T038, somente as imagens preparadas do `br-doc-extraction` em `/content/drive/MyDrive/visiondoc/cache/imagens/`, rotuladas pelo manifesto em `/content/drive/MyDrive/visiondoc/cache/MANIFESTO.JSONL`. Dados reais e documentos de processos judiciais não são admitidos para treinamento nem testes nesta fase.
 
 ## Estratégia de validação
 
-Todos os testes usam dados sintéticos (BID, `br-doc-extraction`, composições e injeções sintéticas). Cada critério de aceitação da especificação é coberto:
+Os testes unitários usam dados sintéticos/fictícios; a preparação, o treino e a avaliação T038 usam exclusivamente as imagens aprovadas em `/content/drive/MyDrive/visiondoc/cache/imagens/`, com os rótulos do manifesto correspondente. Cada critério de aceitação da especificação é coberto:
 
 - **Ingestão:** remoção dos intermediários ao final do lote, inclusive em falha; PDF/JPEG válidos, extensão falsa, tamanho de 1.999.999 e 2.000.000 bytes, mais de 50 páginas, lado maior acima de 10.000 px, PDF com JavaScript/ação automática/anexo/formulário (inventariado e nunca executado), PDF criptografado/corrompido (`arquivo_ilegivel`), JPEG convertido sem reamostragem e com metadados descartados.
 - **Pré-processamento:** imagens giradas em 90/180/270°, inclinadas e espelhadas; conversão de `bbox` para a página original.
@@ -64,7 +64,7 @@ Todos os testes usam dados sintéticos (BID, `br-doc-extraction`, composições 
 - **Validação:** saída fora do esquema (`validacao = falhou`), tipo abaixo de 0,5, campo não pertinente, campo sem respaldo com datas e CPF em formatos impressos variados, CPF com dígito inválido, datas antes de 1900, futuras ou fora de ordem, critério `ok`/`parcial`, junção de frente e verso com campo divergente.
 - **Saída:** conformidade de esquema dos dois CSVs, `motivo_erro`, neutralização de fórmulas (`=`, `+`, `-`, `@`, tabulação, retorno de carro), truncamento em 500 caracteres, NFC, `inteiro_teor` restrito ao `bbox` e leitura com `pandas`.
 - **Falhas:** arquivo de alertas indisponível (regravação ao fim do lote), regravação indisponível (contingência e código de saída), falha de uma etapa em um documento (linha de erro, lote continua).
-- **Meta de 90%:** 1 − CER dos campos extraídos por tipo, nas partições de teste do BID e do `br-doc-extraction`; a meta vale para cada dataset separadamente.
+- **Meta de 90%:** 1 − CER dos campos extraídos por tipo na partição de teste do conjunto aprovado de `br-doc-extraction`.
 - **Análise de desempenho da classificação (RNF-SDD-10):** módulo de avaliação separado do pipeline que gera acurácia, F1 macro e precisão/revocação/F1 por classe sobre os documentos aceitos, com a cobertura, e matriz de confusão (absoluta e normalizada por linha, com coluna `indefinido`), para tipo e para tipo e face, com pareamento por IoU ≥ 0,5 e IC 95% por *bootstrap* com 1.000 reamostragens. Proposta de componentes: `scikit-learn` e `matplotlib`, sujeitos à verificação de licença. O módulo é testado com casos de previsões conhecidas cujo resultado é calculado à mão.
 - **Relatório de treinamento (RF-SDD-18):** gerador que recebe as métricas do módulo de análise, as informações de ambiente (`torch.cuda`, `platform`, versões dos pacotes), do modelo (contagem de parâmetros pelo `peft`), dos dados e dos tempos de treino e inferência, e grava `relatorio.md`, gráficos PNG (`matplotlib`) e `metricas.json`. É chamado ao fim do treino e da avaliação da linha de base. Testado com uma execução sintética fictícia, verificando a presença de cada seção e dos gráficos e a ausência de nome de máquina e caminhos locais.
 

@@ -20,5 +20,6 @@ Formato: contexto, decisão, alternativas consideradas e consequências. Um ADR 
 | [ADR-014](ADR-014-extracao-de-campos.md) | Extração de campos no escopo | Aceito |
 | [ADR-015](ADR-015-vlm-qwen35-4b.md) | Qwen3.5-4B como modelo principal por limite de hardware | Aceito, alterado |
 | [ADR-016](ADR-016-inventario-e-neutralizacao.md) | Inventário com pikepdf e neutralização própria de fórmulas | Aceito |
-| [ADR-017](ADR-017-treino-br-doc-extraction.md) | Treino inicial com o dataset tech4humans/br-doc-extraction | Aceito, alterado |
-| [ADR-018](ADR-018-treino-bid-subpastas.md) | Treino com o BID em subpastas, divisão 70-15-15 e saídas em visiondoc/logs | Aceito |
+| [ADR-017](ADR-017-treino-br-doc-extraction.md) | Decisão histórica sobre a fonte inicial da T038; escopo atual na ADR-019 | Histórico |
+| [ADR-018](ADR-018-treino-bid-subpastas.md) | Decisão histórica de treino em subpastas; substituída pela ADR-019 | Substituído |
+| [ADR-019](ADR-019-treino-imagens-preparadas-invoice.md) | Treino com as imagens preparadas do br-doc-extraction e classe invoice | Aceito |

@@ -13,13 +13,14 @@ Antes de qualquer outra etapa, o arquivo é identificado e saneado. Em PDF, elem
 ## Classificação
 
 ### RN-003
-O conjunto de tipos é fechado: `cnh`, `rg`, `cpf`, `outros`, `indefinido`.
+O conjunto de tipos é fechado: `cnh`, `rg`, `cpf`, `invoice`, `outros`, `indefinido`.
 
-- `outros`: documento reconhecível fora de CNH, RG e CPF.
+- `invoice`: nota fiscal *(incluído em 2026-11-27, [ADR-019](../decisions/ADR-019-treino-imagens-preparadas-invoice.md))*.
+- `outros`: documento reconhecível fora de CNH, RG, CPF e nota fiscal.
 - `indefinido`: confiança abaixo do limiar de rejeição; não é produzido diretamente pelo VLM.
 
 ### RN-004
-Se `confianca_tipo`, calculada a partir dos logprobs do VLM, for menor que o limiar de rejeição (**a calibrar**; valor inicial 0,5), o tipo será `indefinido` e os campos serão descartados. *(Complementada em 2026-11-21)* A confiança de cada rótulo é o produto das probabilidades dos seus tokens, renormalizado entre `cnh`, `rg`, `cpf` e `outros`.
+Se `confianca_tipo`, calculada a partir dos logprobs do VLM, for menor que o limiar de rejeição (**a calibrar**; valor inicial 0,5), o tipo será `indefinido` e os campos serão descartados. *(Complementada em 2026-11-21)* A confiança de cada rótulo é o produto das probabilidades dos seus tokens, renormalizado entre `cnh`, `rg`, `cpf`, `invoice` e `outros`.
 
 ### RN-005
 *(Alterada em 2026-11-20)* Os exemplos de ajuste usam as oito classes BID convertidas em tipo e face, mais exemplos da classe `outros`.
@@ -73,7 +74,7 @@ O inteiro teor do CSV e a evidência do alerta permanecem completos e higienizad
 Se a saída não atender ao esquema, o documento recebe `validacao = falhou`, tipo `indefinido` e nenhum campo.
 
 ### RN-023
-*(Nova)* Somente campos pertinentes ao tipo são mantidos. Documentos `outros` e `indefinido` não têm campos.
+*(Nova)* Somente campos pertinentes ao tipo são mantidos. Documentos `invoice`, `outros` e `indefinido` não têm campos.
 
 ### RN-024
 *(Nova)* Campo extraído precisa ter respaldo na transcrição. Valor e transcrição são normalizados; o respaldo ocorre se `rapidfuzz.fuzz.partial_ratio` atingir o limiar a calibrar, com valor inicial 90. *(Complementada em 2026-11-21)* Normalização para a forma canônica: texto em maiúsculas, sem acentos e sem espaços duplicados; CPF e números apenas com dígitos; datas são buscadas na transcrição nas formas `DD/MM/AAAA`, `DD-MM-AAAA`, `DD.MM.AAAA` e `DD MM AAAA` equivalentes ao valor extraído.
