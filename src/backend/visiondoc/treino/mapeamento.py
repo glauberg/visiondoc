@@ -158,3 +158,12 @@ def mapear_linha(linha: dict) -> LinhaMapeada:
             valor = _maiusculas(valor)
         campos[campo] = valor
     return LinhaMapeada(tipo, campos, sem_anotacao)
+
+
+def mapear_classe(tipo: str) -> LinhaMapeada:
+    """Exemplo só de classificação (ADR-018): todos os campos pertinentes ficam fora da perda."""
+    if tipo not in PERTINENTES:
+        raise ValueError(f"tipo não suportado: {tipo!r}")
+    campos: dict = {c: None for c in CAMPOS_CONTRATO}
+    campos["filiacao"] = []
+    return LinhaMapeada(tipo, campos, set(PERTINENTES[tipo]))

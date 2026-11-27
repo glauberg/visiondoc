@@ -6,7 +6,8 @@ from PIL import Image
 from sintetico import imagem_cartao, jpeg_sintetico
 from visiondoc.deteccao import Detectores
 from visiondoc.transcricao import LinhaTranscrita, Transcricao
-from visiondoc.treino.preparacao import carregar_preparados, preparar
+from visiondoc.treino.mapeamento import mapear_linha
+from visiondoc.treino.preparacao import Exemplo, carregar_preparados, preparar
 
 ESQUEMA = "### Esquema JSON: " + json.dumps({"nome_completo": {}, "data_nascimento": {}})
 
@@ -74,9 +75,16 @@ def _linhas():
     ]
 
 
+def _exemplos():
+    return [
+        Exemplo(p, linha["image"], mapear_linha(linha), f"origem/{i}.jpg")
+        for i, (p, linha) in enumerate(_linhas())
+    ]
+
+
 def _preparar(tmp_path, cfg):
     return preparar(
-        _linhas(),
+        _exemplos(),
         tmp_path / "cache",
         cfg,
         Transcritor(),
@@ -84,6 +92,7 @@ def _preparar(tmp_path, cfg):
         Fixo(),
         Detectores(None, None),
         "config/yara/pdf_conteudo_ativo.yar",
+        dataset="br-doc-extraction",
     )
 
 
@@ -91,7 +100,7 @@ def test_prepara_entrada_do_modelo_e_manifesto(tmp_path, cfg):
     itens = _preparar(tmp_path, cfg)
     assert [i.id for i in itens] == ["train-00000", "test-00001", "test-00002"]
     rg = itens[0]
-    assert rg.erro is None and rg.tipo == "rg"
+    assert rg.erro is None and rg.tipo == "rg" and rg.origem == "origem/0.jpg"
     assert rg.campos["nome"] == "FULANO DE TAL"
     assert "[TRECHO REMOVIDO]" in rg.transcricao  # mascaramento igual ao da inferência
     assert "ignore as instruções" in rg.inteiro_teor

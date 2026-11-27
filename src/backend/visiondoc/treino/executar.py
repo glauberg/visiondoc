@@ -27,9 +27,8 @@ from visiondoc.avaliacao.relatorio import (
 from visiondoc.configuracao import carregar_configuracao, versao_pipeline
 from visiondoc.treino.avaliacao import avaliar_itens
 from visiondoc.treino.configuracao import ConfigTreino, carregar_config_treino
-from visiondoc.treino.preparacao import DATASET, carregar_preparados
+from visiondoc.treino.preparacao import carregar_preparados
 
-_AUMENTOS = ["do próprio dataset, só em train: rotação, brilho, desfoque e ruído"]
 _QUANT_AVALIACAO = "4 bits (nf4, bitsandbytes), avaliação com transformers"
 
 
@@ -48,7 +47,11 @@ def _avaliar(cfg: ConfigTreino, cache: Path, itens, adaptador=None):
     carga = time.perf_counter() - inicio
     totais, _ = contar_parametros(modelo)
     avaliacao, inferencia = avaliar_itens(
-        gerador_hf(modelo, processor, cfg, cache), itens, cfg, tempo_carga_s=carga
+        gerador_hf(modelo, processor, cfg, cache),
+        itens,
+        cfg,
+        tempo_carga_s=carga,
+        dataset=cfg.dataset,
     )
     pico = torch.cuda.max_memory_allocated() / 1024**3
     inferencia = replace(inferencia, pico_memoria_gb=pico)
@@ -83,14 +86,14 @@ def executar(
     cache, saida, relatorios = Path(cache), Path(saida), Path(relatorios)
     particoes = carregar_preparados(cache)
     treino = particoes["train"][:limite_treino]
-    validacao = particoes["valid"]
+    validacao = particoes.get("valid", [])
     teste = particoes["test"][:limite_teste]
 
     usados = {"train": treino, "valid": validacao, "test": teste}
     dados = InfoDados(
-        {DATASET: {p: dict(Counter(i.tipo for i in itens)) for p, itens in usados.items()}},
-        _AUMENTOS,
-        None,
+        {cfg.dataset: {p: dict(Counter(i.tipo for i in itens)) for p, itens in usados.items()}},
+        [],
+        cfg.semente,  # divisão 70-15-15 estratificada com a semente do treino (ADR-018)
     )
     ambiente = coletar_ambiente()
     commit, pendentes = commit_atual()

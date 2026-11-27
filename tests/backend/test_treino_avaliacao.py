@@ -89,7 +89,9 @@ def test_avalia_itens_com_rejeicao_extracao_e_respaldo():
         probs = [1.0, conf, 1.0] if conf else [1.0]
         return texto, tokens, probs, 2.0
 
-    avaliacao, inferencia = avaliar_itens(gerar, itens, cfg, tempo_carga_s=10.0)
+    avaliacao, inferencia = avaliar_itens(
+        gerar, itens, cfg, tempo_carga_s=10.0, dataset="br-doc-extraction"
+    )
     r = avaliacao.classificacao["tipo"]["agregado"]
     assert r.total == 3 and r.aceitos == 1 and r.acuracia == 1.0
     assert inferencia.taxa_json_valido == pytest.approx(2 / 3)
@@ -98,3 +100,32 @@ def test_avalia_itens_com_rejeicao_extracao_e_respaldo():
     assert extracao.por_campo["nome"].acerto_exato == pytest.approx(0.5)
     # respostas válidas preenchem 3 campos; BELTRANO não aparece na transcrição
     assert avaliacao.taxa_campos_sem_respaldo == pytest.approx(1 / 3)
+
+
+def test_treino_so_de_classificacao_nao_avalia_extracao():
+    from visiondoc.treino.mapeamento import mapear_classe
+
+    cfg = carregar_config_treino("config/treino.yaml")
+    m = mapear_classe("cpf")
+    item = ItemPreparado(
+        "test-00000",
+        "test",
+        "cpf",
+        m.campos,
+        sorted(m.sem_anotacao),
+        "imagens/0.png",
+        "x",
+        "CPF",
+        640,
+        400,
+        origem="CPF/0001.jpg",
+    )
+
+    def gerar(_):
+        return _resposta("cpf"), ['{"documentos": [{"tipo": "', "cpf", '"'], [1, 0.9, 1], 1.5
+
+    avaliacao, _ = avaliar_itens(gerar, [item], cfg, tempo_carga_s=1.0)
+    assert avaliacao.extracao == {}
+    assert avaliacao.classificacao["tipo"]["bid"].acuracia == 1.0
+    previsao = avaliacao.previsoes[0]
+    assert previsao["origem"] == "CPF/0001.jpg" and previsao["classe_final"] == "cpf"

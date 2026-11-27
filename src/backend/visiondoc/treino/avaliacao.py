@@ -27,7 +27,7 @@ from visiondoc.avaliacao.relatorio import Avaliacao, InfoInferencia
 from visiondoc.contrato_vlm import SaidaVLM
 from visiondoc.treino.configuracao import ConfigTreino
 from visiondoc.treino.mapeamento import PERTINENTES
-from visiondoc.treino.preparacao import DATASET, ItemPreparado
+from visiondoc.treino.preparacao import ItemPreparado
 
 Gerador = Callable[[ItemPreparado], tuple[str, list[str], list[float], float]]
 _PADRAO_TIPO = re.compile('"tipo"\\s*:\\s*"(\\w*)$')
@@ -102,12 +102,14 @@ def avaliar_itens(
     cfg: ConfigTreino,
     tempo_carga_s: float,
     pico_memoria_gb: float = 0.0,
+    dataset: str = "bid",
 ) -> tuple[Avaliacao, InfoInferencia]:
     limiar = cfg.avaliacao.limiar_rejeicao
     referencias, previstas, brutas, confiancas, acertos, conf_validas = [], [], [], [], [], []
     tempos, tokens_gerados = [], []
     validas = preenchidos = sem_respaldo = 0
     refs_extracao, preds_extracao = [], []
+    previsoes = []
 
     for item in itens:
         texto, tokens, probs, segundos = gerar(item)
@@ -132,16 +134,29 @@ def avaliar_itens(
         if valido and confianca is not None:
             acertos.append(tipo == item.tipo)
             conf_validas.append(confianca)
-        if item.tipo in ("cnh", "rg"):
-            chaves = [c for c in sorted(PERTINENTES[item.tipo]) if c not in item.sem_anotacao]
+        chaves = [c for c in sorted(PERTINENTES.get(item.tipo, ())) if c not in item.sem_anotacao]
+        if chaves:  # exemplos só de classificação não entram na extração (ADR-018)
             refs_extracao.append(_valores_extracao(item.tipo, item.campos, chaves))
             preds_extracao.append(_valores_extracao(item.tipo, campos if aceito else None, chaves))
+        previsoes.append(
+            {
+                "id": item.id,
+                "origem": item.origem,
+                "classe_referencia": item.tipo,
+                "classe_gerada": tipo,
+                "classe_final": tipo if aceito else INDEFINIDO,
+                "confianca": confianca,
+                "json_valido": valido,
+                "segundos": round(segundos, 3),
+                "tokens": len(tokens),
+            }
+        )
 
     classificacao = {
         "tipo": por_recorte(
             referencias,
             previstas,
-            [DATASET] * len(itens),
+            [dataset] * len(itens),
             CLASSES_TIPO,
             n_bootstrap=cfg.avaliacao.n_bootstrap,
             semente=cfg.semente,
@@ -152,8 +167,11 @@ def avaliar_itens(
         classificacao=classificacao,
         curva_cobertura=curva_cobertura(referencias, brutas, confiancas, limiares),
         calibracao=calibracao(acertos, conf_validas),
-        extracao={DATASET: avaliar_extracao(refs_extracao, preds_extracao)},
+        extracao=(
+            {dataset: avaliar_extracao(refs_extracao, preds_extracao)} if refs_extracao else {}
+        ),
         taxa_campos_sem_respaldo=sem_respaldo / preenchidos if preenchidos else 0.0,
+        previsoes=previsoes,
     )
     inferencia = InfoInferencia(
         tempo_carga_s=tempo_carga_s,

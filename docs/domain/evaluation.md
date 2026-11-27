@@ -8,6 +8,8 @@ Versão: 2.0 (2026-11-20).
 
 O Brazilian Identity Document Dataset contém imagens sintéticas e informações falsas. Inclui oito classes de frente e verso de CNH, CPF e RG, totalizando 28.800 imagens. É usado no ajuste do VLM e nas linhas de base.
 
+*(2026-11-26)* Fonte do treino da T038: cópia no Google Drive com as imagens JPEG em três subpastas (CNH, RG e CPF), divididas em 70-15-15 por classe, com treino só de classificação ([ADR-018](../decisions/ADR-018-treino-bid-subpastas.md)).
+
 ### br-doc-extraction
 
 *(2026-11-25)* Fonte inicial e única do treino da T038, carregada com `load_dataset("tech4humans/br-doc-extraction")`, com as partições do próprio dataset; decisões em [ADR-017](../decisions/ADR-017-treino-br-doc-extraction.md).

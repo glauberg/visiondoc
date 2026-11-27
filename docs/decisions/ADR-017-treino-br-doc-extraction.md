@@ -1,6 +1,6 @@
 # ADR-017: Treino inicial com o dataset tech4humans/br-doc-extraction
 
-- **Status:** Aceito
+- **Status:** Aceito, alterado por [ADR-018](ADR-018-treino-bid-subpastas.md) (o treino passa a usar o BID)
 - **Data:** 2026-11-25
 - **Altera:** [ADR-015](ADR-015-vlm-qwen35-4b.md) (dados do ajuste) e o [contrato da saída do VLM](../contracts/saida-vlm.md) (campos de `outros`)
 

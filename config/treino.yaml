@@ -1,6 +1,6 @@
 # Configuração versionada do treino do adaptador LoRA (T038, ADR-010, ADR-015, ADR-017).
 versao: "1"
-dataset: "tech4humans/br-doc-extraction"
+dataset: "bid"  # BID em subpastas CNH, RG e CPF (ADR-018)
 modelo_base: "Qwen/Qwen3.5-4B"
 revisao: null
 semente: 42

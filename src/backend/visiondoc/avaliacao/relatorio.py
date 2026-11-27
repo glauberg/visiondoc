@@ -4,6 +4,7 @@ Gerado ao fim de cada treinamento concluído e de cada avaliação da linha de
 base. Não registra nome de máquina, usuário, caminhos locais nem credenciais.
 """
 
+import csv
 import json
 import os
 import platform
@@ -23,6 +24,7 @@ from visiondoc.avaliacao.metricas import (
     ResultadoClassificacao,
     ResultadoExtracao,
 )
+from visiondoc.csv_seguro import preparar_texto
 
 META_TEMPO_PAGINA_S = 30.0  # RNF-SDD-09, indicador reportado
 META_MEMORIA_GB = 7.5
@@ -104,6 +106,7 @@ class Avaliacao:
     extracao: dict[str, ResultadoExtracao]
     taxa_campos_sem_respaldo: float
     extras: dict = field(default_factory=dict)
+    previsoes: list[dict] = field(default_factory=list)  # gravadas em previsoes.csv
 
 
 # --- ambiente ------------------------------------------------------------------
@@ -270,6 +273,24 @@ def _grafico_matriz(r: ResultadoClassificacao, normalizada: bool, titulo: str, d
             )
     figura.colorbar(imagem, ax=eixo, fraction=0.046)
     _salvar(figura, destino)
+
+
+def _gravar_previsoes(previsoes: list[dict], destino: Path) -> None:
+    colunas = list(previsoes[0])
+    with open(destino, "w", encoding="utf-8", newline="") as arquivo:
+        escritor = csv.writer(arquivo, quoting=csv.QUOTE_NONNUMERIC)
+        escritor.writerow(colunas)
+        for previsao in previsoes:
+            escritor.writerow(
+                [
+                    ""
+                    if previsao[c] is None
+                    else previsao[c]
+                    if isinstance(previsao[c], (int, float))
+                    else preparar_texto(str(previsao[c]))
+                    for c in colunas
+                ]
+            )
 
 
 # --- relatório -----------------------------------------------------------------
@@ -606,21 +627,31 @@ def gerar_relatorio(
     ]
 
     # Extração
-    md += [
-        "## Extração",
-        "",
-        _tabela(
-            ["Dataset", "1 − CER", "Meta de 90%"],
-            [
+    md += ["## Extração", ""]
+    if not avaliacao.extracao:
+        md += [
+            (
+                "Extração não avaliada nesta execução: o treino é só de classificação, "
+                "sem campos anotados (ADR-018)."
+            ),
+            "",
+        ]
+    else:
+        md += [
+            _tabela(
+                ["Dataset", "1 − CER", "Meta de 90%"],
                 [
-                    d,
-                    _n(r.precisao_caracteres),
-                    "atendida" if r.precisao_caracteres >= 0.9 else "não atendida",
-                ]
-                for d, r in avaliacao.extracao.items()
-            ],
-        ),
-        "",
+                    [
+                        d,
+                        _n(r.precisao_caracteres),
+                        "atendida" if r.precisao_caracteres >= 0.9 else "não atendida",
+                    ]
+                    for d, r in avaliacao.extracao.items()
+                ],
+            ),
+            "",
+        ]
+    md += [
         f"Taxa de campos sem respaldo: {_n(avaliacao.taxa_campos_sem_respaldo)}.",
         "",
     ]
@@ -712,6 +743,14 @@ def gerar_relatorio(
             linhas.append(linha)
         md += [_tabela(cabecalho, linhas), ""]
 
+    if avaliacao.previsoes:
+        _gravar_previsoes(avaliacao.previsoes, destino / "previsoes.csv")
+        md += [
+            "## Previsões",
+            "",
+            "Uma linha por documento de teste em [`previsoes.csv`](previsoes.csv).",
+            "",
+        ]
     (destino / "relatorio.md").write_text("\n".join(md), encoding="utf-8")
     (destino / "metricas.json").write_text(
         json.dumps(metricas, ensure_ascii=False, indent=2, default=_json_padrao), encoding="utf-8"

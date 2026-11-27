@@ -148,3 +148,46 @@ def test_compara_com_linha_de_base(tmp_path):
     md = (_gerar(tmp_path / "b", linha_base=anterior) / "relatorio.md").read_text(encoding="utf-8")
     assert "Linha de base" in md
     assert "+0,214" in md  # 0,714 - 0,500
+
+
+def test_sem_extracao_e_com_previsoes_em_csv(tmp_path):
+    import csv as csv_mod
+
+    avaliacao = _avaliacao()
+    avaliacao.extracao = {}
+    avaliacao.previsoes = [
+        {
+            "id": "test-00000",
+            "origem": "=CNH/1.jpg",
+            "classe_referencia": "cnh",
+            "classe_final": "cnh",
+            "confianca": 0.9,
+            "json_valido": True,
+        }
+    ]
+    diretorio = gerar_relatorio(
+        tmp_path,
+        Execucao(
+            "e",
+            "2026-11-26T10:00:00-03:00",
+            "2026-11-26T11:00:00-03:00",
+            "v",
+            "1",
+            1,
+            None,
+            None,
+            None,
+            "zero-shot",
+        ),
+        coletar_ambiente(),
+        InfoModelo("m", None, 10, 0, None, "4 bits", {}, 0, None, 10, 10),
+        InfoDados({"bid": {"test": {"cnh": 1}}}, [], None),
+        None,
+        InfoInferencia(1.0, [1.0], {}, 1.0, 1.0, 1.0),
+        avaliacao,
+    )
+    md = (diretorio / "relatorio.md").read_text(encoding="utf-8")
+    assert "Extração não avaliada" in md and "partições do próprio dataset" in md
+    with open(diretorio / "previsoes.csv", encoding="utf-8", newline="") as arquivo:
+        linha = next(csv_mod.DictReader(arquivo))
+    assert linha["origem"] == "'=CNH/1.jpg" and linha["classe_final"] == "cnh"

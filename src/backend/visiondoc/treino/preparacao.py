@@ -25,10 +25,19 @@ from visiondoc.mascaramento import mascarar_documento
 from visiondoc.modelos import ErroIngestao
 from visiondoc.preprocessamento import normalizar
 from visiondoc.transcricao import transcrever_pagina
-from visiondoc.treino.mapeamento import mapear_linha
+from visiondoc.treino.mapeamento import LinhaMapeada
 
-DATASET = "br-doc-extraction"
 MANIFESTO = "manifesto.jsonl"
+
+
+@dataclass(frozen=True)
+class Exemplo:
+    """Uma imagem do dataset com sua partição, rótulos mapeados e caminho de origem."""
+
+    particao: str
+    imagem: object  # bytes, PIL.Image ou {"bytes": ..., "path": ...}
+    mapeada: LinhaMapeada
+    origem: str
 
 
 @dataclass
@@ -44,6 +53,7 @@ class ItemPreparado:
     largura: int | None = None
     altura: int | None = None
     erro: str | None = None
+    origem: str | None = None
 
 
 def _bytes_jpeg(imagem) -> bytes:
@@ -81,7 +91,7 @@ def _ler_manifesto(destino: Path) -> dict[str, ItemPreparado]:
 
 
 def preparar(
-    linhas: Iterable[tuple[str, dict]],
+    exemplos: Iterable[Exemplo],
     destino: str | Path,
     cfg: Configuracao,
     transcritor,
@@ -89,6 +99,7 @@ def preparar(
     classificador,
     detectores: Detectores,
     regras_yara: str | Path,
+    dataset: str = "bid",
 ) -> list[ItemPreparado]:
     destino = Path(destino)
     (destino / "imagens").mkdir(parents=True, exist_ok=True)
@@ -96,18 +107,23 @@ def preparar(
     itens: list[ItemPreparado] = []
     with Lote() as lote, open(destino / MANIFESTO, "a", encoding="utf-8") as manifesto:
         trabalho = lote.diretorio_trabalho
-        for indice, (particao, linha) in enumerate(linhas):
-            identificador = f"{particao}-{indice:05d}"
+        for indice, exemplo in enumerate(exemplos):
+            identificador = f"{exemplo.particao}-{indice:05d}"
             if identificador in existentes:
                 itens.append(existentes[identificador])
                 continue
-            mapeada = mapear_linha(linha)
+            mapeada = exemplo.mapeada
             item = ItemPreparado(
-                identificador, particao, mapeada.tipo, mapeada.campos, sorted(mapeada.sem_anotacao)
+                identificador,
+                exemplo.particao,
+                mapeada.tipo,
+                mapeada.campos,
+                sorted(mapeada.sem_anotacao),
+                origem=exemplo.origem,
             )
             arquivo = trabalho / f"{identificador}.jpg"
-            arquivo.write_bytes(_bytes_jpeg(linha["image"]))
-            entrada = EntradaArquivo(arquivo, arquivo.name, f"{DATASET}:{identificador}")
+            arquivo.write_bytes(_bytes_jpeg(exemplo.imagem))
+            entrada = EntradaArquivo(arquivo, arquivo.name, f"{dataset}:{exemplo.origem}")
             ingerido = ingerir(entrada, trabalho, cfg)
             if isinstance(ingerido, ErroIngestao):
                 item.erro = str(ingerido.motivo)
